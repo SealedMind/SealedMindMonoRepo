@@ -1,0 +1,16 @@
+node_modules/
+dist/
+build/
+out/
+cache/
+artifacts/
+typechain-types/
+.next/
+coverage/
+.env
+.env.local
+.env.*.local
+*.log
+.DS_Store
+.vercel
+deployments/localhost/
