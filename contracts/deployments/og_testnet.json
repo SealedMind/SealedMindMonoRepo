@@ -1,0 +1,12 @@
+{
+  "network": "og_testnet",
+  "chainId": 16602,
+  "deployer": "0xE74686Fd89ACB480B3903724C367395d86ED4519",
+  "timestamp": "2026-04-07T14:58:56.953Z",
+  "contracts": {
+    "Verifier": "0xE4f3f96419c87675EEa6Cd55D689b0A8807D8AAd",
+    "SealedMindNFT": "0x741BbE3B2d19E1aE965467280Cc2a442F3632Ee7",
+    "CapabilityRegistry": "0xf6b33aDa9dd4998E71FA070C1618C8a52A44Ec66",
+    "MemoryAccessLog": "0xB085F48c98E8878ACA88460B37653cC8d2E24482"
+  }
+}
