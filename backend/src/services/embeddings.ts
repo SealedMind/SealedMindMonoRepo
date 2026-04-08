@@ -1,5 +1,5 @@
 /**
- * Local embedding service using @xenova/transformers.
+ * Local embedding service using @huggingface/transformers.
  *
  * Uses all-MiniLM-L6-v2 (384-dim) for fast, lightweight embeddings.
  * In production with 0G H100 TEE embedding support, this would run
@@ -11,7 +11,7 @@ let pipelinePromise: Promise<any> | null = null;
 function getPipeline() {
   if (!pipelinePromise) {
     pipelinePromise = (async () => {
-      const { pipeline } = await import("@xenova/transformers");
+      const { pipeline } = await import("@huggingface/transformers");
       return pipeline("feature-extraction", "Xenova/all-MiniLM-L6-v2");
     })();
   }

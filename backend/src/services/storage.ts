@@ -98,7 +98,7 @@ export class StorageService {
     await file.close();
     try { rmSync(dir, { recursive: true, force: true }); } catch {}
     if (err) throw new Error(`0G Storage upload failed: ${err.message ?? err}`);
-    return { rootHash: res.rootHash, txHash: res.txHash };
+    return { rootHash: (res as any).rootHash, txHash: (res as any).txHash };
   }
 
   /** Fetch and decrypt a blob by rootHash. */

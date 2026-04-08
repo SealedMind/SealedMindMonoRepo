@@ -39,7 +39,7 @@ export class InferenceService {
   }
 
   async init(): Promise<void> {
-    this.broker = await createZGComputeNetworkBroker(this.wallet);
+    this.broker = await createZGComputeNetworkBroker(this.wallet as any);
     const services = await this.broker.inference.listService();
     const chatbot = services.find((s: any) => s.serviceType === "chatbot");
     if (!chatbot) throw new Error("No chatbot service found on 0G Compute");

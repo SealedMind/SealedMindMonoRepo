@@ -2,8 +2,25 @@
   "name": "sealedmind",
   "private": true,
   "version": "0.0.0",
-  "workspaces": ["contracts", "backend", "sdk", "frontend"],
+  "workspaces": [
+    "contracts",
+    "backend",
+    "sdk",
+    "frontend"
+  ],
   "scripts": {
     "test": "npm test --workspaces --if-present"
+  },
+  "dependencies": {
+    "cors": "^2.8.6",
+    "ethers": "^6.16.0",
+    "express": "^5.2.1",
+    "siwe": "^3.0.0",
+    "uuid": "^13.0.0"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/uuid": "^10.0.0"
   }
 }
