@@ -5,10 +5,8 @@ import { generateKey } from "../src/services/crypto.js";
 
 loadEnv({ path: "../.env" });
 
-// 2026-04-07: Galileo testnet flow contract (0x22E03...) is reverting on submit()
-// for ALL users (nextTxSeq stuck at 42752). Our code follows the exact SDK README
-// pattern. Skip until testnet recovers. Re-enable by removing .skip.
-const RUN = describe.skip;
+// Requires funded PRIVATE_KEY in .env to hit the real 0G testnet.
+const RUN = process.env.PRIVATE_KEY ? describe : describe.skip;
 
 /**
  * Real integration test against 0G Storage testnet.

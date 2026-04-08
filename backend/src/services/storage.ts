@@ -1,4 +1,4 @@
-import { Indexer, MemData, ZgFile } from "@0glabs/0g-ts-sdk";
+import { Indexer, MemData, ZgFile } from "@0gfoundation/0g-ts-sdk";
 import { Wallet, JsonRpcProvider } from "ethers";
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
