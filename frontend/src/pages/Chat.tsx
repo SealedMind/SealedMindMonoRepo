@@ -2,6 +2,8 @@ import { useState, useRef, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useAuth } from "../lib/auth";
 import AttestationBadge from "../components/AttestationBadge";
+import CIDChip from "../components/CIDChip";
+import SealingProgress from "../components/SealingProgress";
 import MindSeal from "../components/MindSeal";
 
 type Turn = {
@@ -192,9 +194,9 @@ export default function Chat() {
                     {turn.content}
                   </div>
 
-                  {/* Receipt */}
+                  {/* Receipt strip */}
                   {(turn.attestation || turn.storageCIDs?.length || turn.retrieved !== undefined) && (
-                    <div className="mt-4 flex flex-wrap items-start gap-3">
+                    <div className="mt-5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                       {turn.attestation && (
                         <AttestationBadge
                           verified={turn.attestation.verified}
@@ -203,28 +205,22 @@ export default function Chat() {
                         />
                       )}
                       {turn.retrieved !== undefined && (
-                        <div className="px-3 py-2 hairline bg-ink-2/60 font-mono text-[10px]">
-                          <div className="text-vellum-mute uppercase tracking-[0.2em]">
-                            Retrieved
-                          </div>
-                          <div className="text-vellum mt-0.5">
-                            {turn.retrieved} memor
-                            {turn.retrieved === 1 ? "y" : "ies"}
+                        <div className="flex items-center gap-3 px-4 py-3 hairline bg-ink-2/70 min-w-[200px]">
+                          <div className="flex flex-col leading-snug">
+                            <span className="font-mono text-[9px] tracking-[0.22em] uppercase text-vellum-mute">
+                              Memories Retrieved
+                            </span>
+                            <span className="font-mono text-[16px] text-vellum mt-1">
+                              {turn.retrieved}{" "}
+                              <span className="text-[10px] text-vellum-mute uppercase tracking-[0.18em]">
+                                fragment{turn.retrieved === 1 ? "" : "s"}
+                              </span>
+                            </span>
                           </div>
                         </div>
                       )}
-                      {turn.storageCIDs?.slice(0, 2).map((cid, i) => (
-                        <div
-                          key={i}
-                          className="px-3 py-2 hairline bg-ink-2/60 font-mono text-[10px]"
-                        >
-                          <div className="text-vellum-mute uppercase tracking-[0.2em]">
-                            0G CID
-                          </div>
-                          <div className="text-seal mt-0.5">
-                            {cid.slice(0, 10)}…{cid.slice(-6)}
-                          </div>
-                        </div>
+                      {turn.storageCIDs?.map((cid, i) => (
+                        <CIDChip key={i} cid={cid} index={i} />
                       ))}
                     </div>
                   )}
@@ -233,12 +229,7 @@ export default function Chat() {
             </div>
           ))}
 
-          {busy && (
-            <div className="text-vellum-mute fade-up">
-              <span className="anim-blink inline-block w-[8px] h-[14px] bg-seal align-middle mr-2" />
-              {mode === "remember" ? "sealing in TEE…" : "querying inside enclave…"}
-            </div>
-          )}
+          {busy && <SealingProgress mode={mode} />}
         </div>
 
         {/* Input bar */}
