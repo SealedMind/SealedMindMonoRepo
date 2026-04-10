@@ -14,10 +14,12 @@ export async function remember(opts: {
     JSON.stringify(
       {
         sealed: r.memories?.length ?? 0,
-        memories: (r.memories ?? []).map((m) => ({
+        memories: (r.memories ?? []).map((m: any) => ({
           content: m.content,
           shard: m.shard,
           cid: m.storageCID,
+          txHash: m.txHash ?? null,
+          explorer: m.explorerUrl ?? null,
         })),
         attestation: r.attestation,
         totalMemories: r.mindStats?.totalMemories,

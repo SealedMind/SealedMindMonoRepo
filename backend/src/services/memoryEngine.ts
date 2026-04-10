@@ -28,6 +28,7 @@ export interface RememberResult {
     attestationValid: boolean;
   };
   storageCIDs: string[];
+  txHashes: string[];
 }
 
 export interface RecallResult {
@@ -79,6 +80,7 @@ export class MemoryEngine {
 
     const memories: MemoryRecord[] = [];
     const storageCIDs: string[] = [];
+    const txHashes: string[] = [];
 
     for (const fact of facts) {
       // 2. Generate embedding (local — TEE-ready when 0G adds embedding models)
@@ -98,7 +100,7 @@ export class MemoryEngine {
 
       // 4. Encrypt and upload to 0G Storage
       const payload = JSON.stringify(record);
-      const { rootHash } = await this.storage.putEncrypted(payload, this.encryptionKey);
+      const { rootHash, txHash } = await this.storage.putEncrypted(payload, this.encryptionKey);
       record.storageCID = rootHash;
 
       // 5. Add to vector index
@@ -106,12 +108,14 @@ export class MemoryEngine {
       this.records.set(id, record);
       memories.push(record);
       storageCIDs.push(rootHash);
+      txHashes.push(txHash);
     }
 
     return {
       memories,
       attestation: { chatId, attestationValid },
       storageCIDs,
+      txHashes,
     };
   }
 

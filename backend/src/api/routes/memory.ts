@@ -30,13 +30,17 @@ export function createMemoryRouter(engine: MemoryEngine) {
 
       res.json({
         success: true,
-        memories: result.memories.map((m) => ({
+        memories: result.memories.map((m, i) => ({
           id: m.id,
           content: m.content,
           type: m.type,
           shard: m.shard,
           tags: m.tags,
           storageCID: m.storageCID,
+          txHash: result.txHashes[i] ?? null,
+          explorerUrl: result.txHashes[i]
+            ? `https://chainscan-galileo.0g.ai/tx/${result.txHashes[i]}`
+            : null,
           createdAt: new Date(m.createdAt).toISOString(),
         })),
         attestation: {
