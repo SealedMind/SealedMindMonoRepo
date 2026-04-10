@@ -19,8 +19,8 @@ export default function MindSeal({
   active = true,
   className = "",
 }: Props) {
-  const color = variant === "seal" ? "#5eead4" : "#c084fc";
-  const colorDeep = variant === "seal" ? "#0d9488" : "#7c3aed";
+  const color = variant === "seal" ? "#06B6D4" : "#8B5CF6";
+  const colorDeep = variant === "seal" ? "#0E7490" : "#6D28D9";
 
   return (
     <div
@@ -31,7 +31,7 @@ export default function MindSeal({
       <svg
         viewBox="0 0 200 200"
         className={`absolute inset-0 ${active ? "anim-spin-slow" : ""}`}
-        style={{ filter: `drop-shadow(0 0 8px ${color}60)` }}
+        style={{ filter: `drop-shadow(0 0 6px ${color}80)` }}
       >
         <g fill="none" stroke={color} strokeWidth="0.6">
           {Array.from({ length: 60 }).map((_, i) => {
@@ -59,20 +59,25 @@ export default function MindSeal({
       <svg viewBox="0 0 200 200" className="absolute inset-0">
         <defs>
           <radialGradient id={`seal-grad-${variant}`} cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor={color} stopOpacity="0.9" />
-            <stop offset="40%" stopColor={colorDeep} stopOpacity="0.6" />
-            <stop offset="100%" stopColor="#050507" stopOpacity="1" />
+            <stop offset="0%" stopColor={color} stopOpacity="1" />
+            <stop offset="45%" stopColor={colorDeep} stopOpacity="0.75" />
+            <stop offset="100%" stopColor="#ffffff" stopOpacity="1" />
           </radialGradient>
           <linearGradient id={`seal-stroke-${variant}`} x1="0" y1="0" x2="1" y2="1">
             <stop offset="0%" stopColor={color} />
             <stop offset="100%" stopColor={colorDeep} />
           </linearGradient>
+          <filter id={`seal-shadow-${variant}`} x="-20%" y="-20%" width="140%" height="140%">
+            <feDropShadow dx="0" dy="4" stdDeviation="8" floodColor={color} floodOpacity="0.25" />
+            <feDropShadow dx="0" dy="1" stdDeviation="2" floodColor={colorDeep} floodOpacity="0.15" />
+          </filter>
         </defs>
         <polygon
           points="100,18 168,56 168,144 100,182 32,144 32,56"
           fill={`url(#seal-grad-${variant})`}
           stroke={`url(#seal-stroke-${variant})`}
-          strokeWidth="1.2"
+          strokeWidth="1.8"
+          filter={`url(#seal-shadow-${variant})`}
         />
       </svg>
 
@@ -123,7 +128,7 @@ export default function MindSeal({
       {/* Glowing core */}
       <svg viewBox="0 0 200 200" className={`absolute inset-0 ${active ? "anim-glow-breathe" : ""}`}>
         <circle cx="100" cy="100" r="14" fill={color} opacity="0.95" />
-        <circle cx="100" cy="100" r="7" fill="#f5f1e8" />
+        <circle cx="100" cy="100" r="7" fill="#ffffff" />
         <circle cx="100" cy="100" r="22" fill="none" stroke={color} strokeWidth="0.8" opacity="0.6" />
       </svg>
     </div>

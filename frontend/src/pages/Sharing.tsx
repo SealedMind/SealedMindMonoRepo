@@ -70,12 +70,12 @@ export default function Sharing() {
       <div className="grid grid-cols-12 gap-8 items-end mb-16">
         <div className="col-span-12 lg:col-span-8">
           <div className="eyebrow flex items-center gap-3">
-            <span className="inline-block w-8 h-px bg-rune" />
+            <span className="inline-block w-8 h-px bg-seal-deep" />
             Mind · {id} · Capability ledger
           </div>
           <h1 className="font-display mt-6 text-[80px] leading-[0.85] tracking-[-0.03em] text-vellum">
             Sharing<br />
-            <span className="font-display-italic text-rune">manifest.</span>
+            <span className="font-display-italic text-seal-deep">manifest.</span>
           </h1>
           <p className="mt-6 text-vellum-dim text-[16px] max-w-[560px] leading-[1.7]">
             Grant other agents and humans scoped, time-bound, read-only access
@@ -93,7 +93,7 @@ export default function Sharing() {
           <button
             onClick={() => setShowForm((s) => !s)}
             className="btn-seal"
-            style={{ background: "#c084fc" }}
+            style={{ background: "#0E7490" }}
           >
             {showForm ? "Cancel" : "+ Grant"}
           </button>
@@ -102,8 +102,8 @@ export default function Sharing() {
 
       {/* Grant form */}
       {showForm && (
-        <div className="hairline-rune bg-ink-2/60 grain p-8 mb-12 fade-up">
-          <div className="font-mono text-[10px] tracking-[0.22em] uppercase text-rune mb-6">
+        <div className="hairline-seal bg-ink-2/60 grain p-8 mb-12 fade-up">
+          <div className="font-mono text-[10px] tracking-[0.22em] uppercase text-seal-deep mb-6">
             ⬡ Forge new capability
           </div>
           <div className="grid grid-cols-12 gap-4">
@@ -114,7 +114,7 @@ export default function Sharing() {
               <input
                 value={form.shardName}
                 onChange={(e) => setForm({ ...form, shardName: e.target.value })}
-                className="mt-2 w-full bg-ink border border-vellum/10 px-3 py-2 font-mono text-[12px] text-vellum focus:border-rune focus:outline-none"
+                className="mt-2 w-full bg-ink border border-vellum/10 px-3 py-2 font-mono text-[12px] text-vellum focus:border-seal focus:outline-none"
               />
             </div>
             <div className="col-span-12 md:col-span-5">
@@ -125,7 +125,7 @@ export default function Sharing() {
                 value={form.grantee}
                 onChange={(e) => setForm({ ...form, grantee: e.target.value })}
                 placeholder="0x…"
-                className="mt-2 w-full bg-ink border border-vellum/10 px-3 py-2 font-mono text-[12px] text-vellum focus:border-rune focus:outline-none"
+                className="mt-2 w-full bg-ink border border-vellum/10 px-3 py-2 font-mono text-[12px] text-vellum focus:border-seal focus:outline-none"
               />
             </div>
             <div className="col-span-6 md:col-span-2">
@@ -136,7 +136,7 @@ export default function Sharing() {
                 type="date"
                 value={form.expiry}
                 onChange={(e) => setForm({ ...form, expiry: e.target.value })}
-                className="mt-2 w-full bg-ink border border-vellum/10 px-3 py-2 font-mono text-[12px] text-vellum focus:border-rune focus:outline-none"
+                className="mt-2 w-full bg-ink border border-vellum/10 px-3 py-2 font-mono text-[12px] text-vellum focus:border-seal focus:outline-none"
               />
             </div>
             <div className="col-span-6 md:col-span-2 flex items-end">
@@ -145,7 +145,7 @@ export default function Sharing() {
                   type="checkbox"
                   checked={form.readOnly}
                   onChange={(e) => setForm({ ...form, readOnly: e.target.checked })}
-                  className="accent-rune"
+                  className="accent-seal"
                 />
                 Read-only
               </label>
@@ -156,7 +156,7 @@ export default function Sharing() {
               onClick={grant}
               disabled={!form.grantee.trim()}
               className="btn-seal disabled:opacity-30"
-              style={{ background: "#c084fc" }}
+              style={{ background: "#0E7490" }}
             >
               Seal capability →
             </button>
@@ -172,10 +172,10 @@ export default function Sharing() {
       ) : caps.length === 0 ? (
         <div className="hairline bg-ink-2/30 grain p-20 text-center">
           <div className="flex justify-center mb-8">
-            <MindSeal size={140} variant="rune" active={false} />
+            <MindSeal size={140} variant="seal" active={false} />
           </div>
           <div className="font-display text-[42px] text-vellum">No capabilities granted.</div>
-          <p className="font-display-italic text-rune text-[20px] mt-3">
+          <p className="font-display-italic text-seal-deep text-[20px] mt-3">
             This Mind shares with no one.
           </p>
         </div>
@@ -201,7 +201,7 @@ export default function Sharing() {
                 {String(i + 1).padStart(2, "0")}
               </div>
               <div className="col-span-2">
-                <span className="px-2 py-1 hairline-rune text-rune text-[10px] uppercase tracking-[0.15em]">
+                <span className="px-2 py-1 hairline-seal text-seal-deep text-[10px] uppercase tracking-[0.15em]">
                   {cap.shardName}
                 </span>
               </div>
@@ -237,7 +237,7 @@ export default function Sharing() {
 
       {/* Footer note */}
       <div className="mt-12 flex items-start gap-4 font-mono text-[10px] tracking-[0.22em] uppercase text-vellum-mute">
-        <span className="inline-block w-8 h-px bg-rune mt-3" />
+        <span className="inline-block w-8 h-px bg-seal-deep mt-3" />
         <div>
           Each capability lives on the CapabilityRegistry contract.
           <br />

@@ -164,7 +164,7 @@ export default function Chat() {
               <div className="mb-2">
                 $ choose mode below — <span className="text-seal">recall</span>{" "}
                 queries existing memories,{" "}
-                <span className="text-rune">remember</span> stores new ones
+                <span className="text-seal-deep">remember</span> stores new ones
               </div>
               <div className="mt-6 text-vellum-mute">
                 <span className="anim-blink inline-block w-[8px] h-[14px] bg-seal align-middle" />
@@ -185,7 +185,7 @@ export default function Chat() {
                 <div className="border-l border-seal/40 pl-4 py-1">
                   <div
                     className={`text-[11px] tracking-[0.18em] uppercase mb-2 ${
-                      turn.mode === "remember" ? "text-rune" : "text-seal"
+                      turn.mode === "remember" ? "text-seal-deep" : "text-seal"
                     }`}
                   >
                     ⬡ Mind response
@@ -245,7 +245,7 @@ export default function Chat() {
                     mode === m
                       ? m === "recall"
                         ? "bg-seal text-ink"
-                        : "bg-rune text-ink"
+                        : "bg-seal-deep text-ink"
                       : "text-vellum-mute hover:text-vellum"
                   }`}
                 >

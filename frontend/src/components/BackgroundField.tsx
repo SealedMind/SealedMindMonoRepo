@@ -17,10 +17,10 @@ export default function BackgroundField() {
         className="absolute inset-0"
         style={{
           background:
-            "radial-gradient(ellipse 80% 60% at 15% 20%, rgba(94, 234, 212, 0.12) 0%, transparent 60%), " +
-            "radial-gradient(ellipse 70% 50% at 85% 80%, rgba(192, 132, 252, 0.08) 0%, transparent 60%), " +
-            "radial-gradient(ellipse 100% 80% at 50% 100%, rgba(13, 148, 136, 0.06) 0%, transparent 50%), " +
-            "linear-gradient(180deg, #050507 0%, #08080e 100%)",
+            "radial-gradient(ellipse 80% 60% at 15% 20%, rgba(6, 182, 212, 0.10) 0%, transparent 60%), " +
+            "radial-gradient(ellipse 70% 50% at 85% 80%, rgba(139, 92, 246, 0.06) 0%, transparent 60%), " +
+            "radial-gradient(ellipse 100% 80% at 50% 100%, rgba(14, 116, 144, 0.08) 0%, transparent 50%), " +
+            "linear-gradient(180deg, #F0FCFF 0%, #E3F8FD 100%)",
         }}
       />
 
@@ -34,7 +34,7 @@ export default function BackgroundField() {
       >
         <defs>
           <pattern id="lattice" width="48" height="48" patternUnits="userSpaceOnUse">
-            <circle cx="24" cy="24" r="0.8" fill="#5eead4" opacity="0.18" />
+            <circle cx="24" cy="24" r="0.8" fill="#06B6D4" opacity="0.20" />
           </pattern>
         </defs>
         <rect width="100%" height="100%" fill="url(#lattice)" />
@@ -46,7 +46,7 @@ export default function BackgroundField() {
         style={{
           left: "-200px",
           top: "10%",
-          background: "radial-gradient(circle, rgba(94, 234, 212, 0.15) 0%, transparent 70%)",
+          background: "radial-gradient(circle, rgba(6, 182, 212, 0.12) 0%, transparent 70%)",
           filter: "blur(60px)",
         }}
       />
@@ -55,7 +55,7 @@ export default function BackgroundField() {
         style={{
           right: "-150px",
           bottom: "20%",
-          background: "radial-gradient(circle, rgba(192, 132, 252, 0.12) 0%, transparent 70%)",
+          background: "radial-gradient(circle, rgba(139, 92, 246, 0.08) 0%, transparent 70%)",
           filter: "blur(60px)",
           animationDelay: "-7s",
         }}
@@ -63,10 +63,10 @@ export default function BackgroundField() {
 
       {/* Layer 4 — grain */}
       <div
-        className="absolute inset-0 opacity-[0.18] mix-blend-overlay"
+        className="absolute inset-0 opacity-[0.08] mix-blend-multiply"
         style={{
           backgroundImage:
-            "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.92' numOctaves='3'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.55 0'/></filter><rect width='240' height='240' filter='url(%23n)'/></svg>\")",
+            "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.92' numOctaves='3'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0.3  0 0 0 0 0.4  0 0 0 0.4 0'/></filter><rect width='240' height='240' filter='url(%23n)'/></svg>\")",
         }}
       />
 
@@ -74,8 +74,8 @@ export default function BackgroundField() {
       <div
         className="absolute left-0 right-0 h-px"
         style={{
-          background: "linear-gradient(90deg, transparent, #5eead4, transparent)",
-          opacity: 0.4,
+          background: "linear-gradient(90deg, transparent, #06B6D4, transparent)",
+          opacity: 0.25,
           animation: "scan 14s linear infinite",
         }}
       />
