@@ -6,7 +6,8 @@
     "contracts",
     "backend",
     "sdk",
-    "frontend"
+    "frontend",
+    "cli"
   ],
   "scripts": {
     "test": "npm test --workspaces --if-present"
