@@ -9,6 +9,10 @@ _Populated automatically from SealedMind memory on boot. Updated during conversa
 ## Health
 _(allergies, medications, conditions — recalled from health shard)_
 
+- **Allergies:** Shellfish, Penicillin ⚠️
+- **Conditions:** Type 2 Diabetes
+- **Medications:** Metformin 500mg twice daily
+
 ## Work
 _(current projects, tech stack, role — recalled from work shard)_
 
