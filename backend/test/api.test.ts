@@ -33,11 +33,16 @@ const mockEngine = {
   init: vi.fn().mockResolvedValue(undefined),
 } as any;
 
+// Mock EngineRegistry — returns mockEngine for any address
+const mockRegistry = {
+  getOrCreate: vi.fn().mockResolvedValue(mockEngine),
+} as any;
+
 let app: express.Express;
 let authToken: string;
 
 beforeAll(async () => {
-  app = createApp(mockEngine);
+  app = createApp(mockRegistry);
 
   // Create a session directly for testing (bypasses SIWE signature verification)
   const { token } = await createSession(
@@ -56,7 +61,6 @@ describe("Health check", () => {
     const res = await request(app).get("/health");
     expect(res.status).toBe(200);
     expect(res.body.status).toBe("ok");
-    expect(res.body.memoryCount).toBe(3);
   });
 });
 
