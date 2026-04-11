@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import hnswlib from "hnswlib-node";
 
 /**
@@ -52,9 +53,8 @@ export class VectorIndex {
   serialize(): Buffer {
     const tmpPath = `/tmp/sealedmind-hnsw-${Date.now()}.bin`;
     this.index.writeIndexSync(tmpPath);
-    const { readFileSync, unlinkSync } = require("node:fs");
-    const buf = readFileSync(tmpPath);
-    unlinkSync(tmpPath);
+    const buf = fs.readFileSync(tmpPath);
+    fs.unlinkSync(tmpPath);
     return buf;
   }
 
@@ -62,11 +62,10 @@ export class VectorIndex {
   static deserialize(data: Buffer, dim: number, maxElements: number = 10_000): VectorIndex {
     const vi = new VectorIndex(dim, maxElements);
     const tmpPath = `/tmp/sealedmind-hnsw-load-${Date.now()}.bin`;
-    const { writeFileSync, unlinkSync } = require("node:fs");
-    writeFileSync(tmpPath, data);
+    fs.writeFileSync(tmpPath, data);
     vi.index.readIndexSync(tmpPath);
     vi.count = vi.index.getCurrentCount();
-    unlinkSync(tmpPath);
+    fs.unlinkSync(tmpPath);
     return vi;
   }
 

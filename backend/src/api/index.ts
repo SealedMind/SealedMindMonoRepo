@@ -28,7 +28,7 @@ async function main() {
         privateKey: process.env.PRIVATE_KEY!,
       },
     },
-    process.env.KEY_DERIVATION_SECRET ?? require("node:crypto").randomBytes(32).toString("hex"),
+    process.env.KEY_DERIVATION_SECRET ?? (await import("node:crypto")).default.randomBytes(32).toString("hex"),
     "data"
   );
 
