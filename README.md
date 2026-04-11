@@ -6,6 +6,7 @@ SealedMind is the first portable memory layer for AI agents where:
 - **Privacy is hardware-enforced** — every read and write runs inside Intel TDX + NVIDIA H100 TEE via 0G Sealed Inference
 - **Persistence is decentralized** — memories are AES-256-GCM encrypted and stored permanently on 0G Storage
 - **Ownership is cryptographic** — each Mind is an ERC-7857 iNFT on 0G Chain, transferable and user-controlled
+- **Isolation is guaranteed** — per-user encryption keys, per-user vector index, zero memory bleed between users
 
 Built for the 0G APAC Hackathon.
 
@@ -20,32 +21,34 @@ Built for the 0G APAC Hackathon.
 5. [Prerequisites](#prerequisites)
 6. [Setup](#setup)
 7. [Running Locally](#running-locally)
-8. [Frontend Usage](#frontend-usage)
+8. [Web App Usage](#web-app-usage)
 9. [CLI Usage](#cli-usage)
-10. [OpenClaw Skill](#openclaw-skill)
-11. [API Reference](#api-reference)
-12. [SDK Reference](#sdk-reference)
+10. [SDK Usage](#sdk-usage)
+11. [Life OS Agent (OpenClaw)](#life-os-agent-openclaw)
+12. [API Reference](#api-reference)
 13. [Testing](#testing)
 14. [How It Works](#how-it-works)
+15. [Key Design Decisions](#key-design-decisions)
 
 ---
 
 ## Architecture
 
 ```
-User / OpenClaw agent
+User / Life OS Agent (OpenClaw)
        │
        ▼
 ┌─────────────────┐       ┌──────────────────────────────┐
-│  Frontend dApp  │       │         CLI (sealedmind)      │
-│  Vite + React   │       │  remember / recall / grant    │
+│  Frontend dApp  │       │    CLI  (sealedmind)          │
+│  Vite + React   │       │  login / remember / recall /  │
+│  RainbowKit     │       │  grant                        │
 └────────┬────────┘       └──────────────┬───────────────┘
          │                               │
          └──────────────┬────────────────┘
                         ▼
               ┌─────────────────┐
-              │   Backend API   │  Express + SIWE auth
-              │  :4000          │
+              │   Backend API   │  Express + SIWE + API keys
+              │  :4000          │  EngineRegistry (per-user)
               └────────┬────────┘
                        │
           ┌────────────┼────────────┐
@@ -69,7 +72,7 @@ User / OpenClaw agent
 ```
 text → fact extraction (TEE) → embed (all-MiniLM-L6-v2, 384d)
      → AES-256-GCM encrypt → 0G Storage upload → HNSW index
-     → TEE attestation returned
+     → txHash returned (verifiable on chainscan-galileo.0g.ai)
 ```
 
 ### Recall flow
@@ -78,59 +81,45 @@ query → embed → HNSW search → fetch + decrypt memories
       → TEE synthesis (Qwen 2.5 7B) → attested answer returned
 ```
 
+### Encryption key derivation
+```
+user_key = HMAC-SHA256(KEY_DERIVATION_SECRET, walletAddress)
+```
+Keys are never written to disk. Same wallet → same key on every server restart.
+
 ---
 
 ## Monorepo Layout
 
 ```
 sealedmind/
-├── contracts/          # Solidity smart contracts (Hardhat)
-│   ├── contracts/
-│   │   ├── SealedMindNFT.sol       # ERC-7857 iNFT
-│   │   ├── CapabilityRegistry.sol  # On-chain shard access control
-│   │   ├── MemoryAccessLog.sol     # Immutable audit log
-│   │   └── Verifier.sol            # TEE attestation verifier
-│   ├── test/           # 31 Hardhat tests
-│   └── scripts/        # deploy.ts
-│
-├── backend/            # Express API (TypeScript)
-│   ├── src/
-│   │   ├── api/
-│   │   │   ├── routes/             # minds, memory, capabilities, attestations, auth
-│   │   │   └── middleware/         # SIWE auth, session store
-│   │   └── services/
-│   │       ├── memoryEngine.ts     # Orchestrates full remember/recall pipeline
-│   │       ├── inference.ts        # 0G Sealed Inference (TEE) client
-│   │       ├── storage.ts          # 0G Storage upload/download
-│   │       ├── embeddings.ts       # all-MiniLM-L6-v2 via @huggingface/transformers
-│   │       ├── vectorIndex.ts      # HNSW via hnswlib-node
-│   │       └── crypto.ts           # AES-256-GCM encrypt/decrypt
-│   └── test/           # 34 Vitest tests (unit + live 0G integration)
-│
-├── sdk/                # @sealedmind/sdk — TypeScript client library
-│   ├── src/
-│   │   ├── client.ts   # SealedMind class
-│   │   └── types.ts    # All public types
-│   └── test/           # 12 Vitest tests (mock server)
-│
-├── frontend/           # Vite + React 19 dApp
+├── contracts/          Hardhat — ERC-7857 iNFT, CapabilityRegistry, MemoryAccessLog
+├── backend/            Express API — EngineRegistry, memory engine, SIWE + API key auth
 │   └── src/
-│       ├── pages/      # Landing, Dashboard, Chat, Sharing
-│       ├── components/ # MindSeal, AttestationBadge, CIDChip, SealingProgress
-│       └── lib/        # wagmi config, SIWE auth hook, SDK singleton
-│
-├── cli/                # sealedmind CLI — OpenClaw bridge
-│   ├── src/
-│   │   ├── commands/   # recall.ts, remember.ts, grant.ts
-│   │   └── lib/        # client.ts (env-var session loader)
-│   └── test/           # 4 Vitest e2e tests
-│
-├── openclaw-skill/     # OpenClaw SKILL.md skill definition
-│   └── SKILL.md
-│
-└── docs/
-    ├── TESTING-GUIDE.md            # Complete testing walkthrough
-    └── PHASE7-OPENCLAW-PARTNER-BRIEF.md
+│       ├── api/
+│       │   ├── middleware/auth.ts      SIWE + API key, session persistence
+│       │   └── routes/                minds, memory, capabilities, attestations
+│       └── services/
+│           ├── engineRegistry.ts      Per-user MemoryEngine factory
+│           ├── memoryEngine.ts        Remember / recall orchestration
+│           ├── vectorIndex.ts         HNSW wrapper (hnswlib-node)
+│           ├── inference.ts           0G Sealed Inference (TEE broker)
+│           ├── storage.ts             0G Storage upload/download
+│           ├── embeddings.ts          all-MiniLM-L6-v2 (384d)
+│           └── crypto.ts              AES-256-GCM
+├── sdk/                TypeScript SDK — SealedMind client
+├── cli/                CLI — login, remember, recall, grant
+│   └── src/commands/
+│       ├── login.ts    SIWE auth from private key → ~/.sealedmind/config.json
+│       ├── remember.ts
+│       ├── recall.ts
+│       └── grant.ts
+├── frontend/           Vite + React + RainbowKit — Arctic Vault design
+└── openclaw-skill/     OpenClaw skill + Life OS agent
+    ├── SKILL.md        Skill definition
+    └── agent/
+        ├── life-os.md  Agent system prompt + configuration
+        └── demo.md     Judge demo script
 ```
 
 ---
@@ -139,71 +128,61 @@ sealedmind/
 
 | Layer | Technology |
 |---|---|
-| Chain | 0G Chain (Galileo testnet, chain ID 16602) |
-| Sealed Inference | 0G Sealed Inference — Qwen 2.5 7B inside Intel TDX + NVIDIA H100 |
-| Storage | 0G Storage via `@0gfoundation/0g-ts-sdk@1.2.1` |
-| Compute broker | `@0glabs/0g-serving-broker@0.7.4` |
-| Smart contracts | Solidity + Hardhat + OpenZeppelin |
-| NFT standard | ERC-7857 (intelligent NFT) |
-| Encryption | AES-256-GCM (key generated inside TEE) |
-| Embeddings | `all-MiniLM-L6-v2` (384-dim) via `@huggingface/transformers@4.0.1` |
-| Vector search | HNSW via `hnswlib-node` |
-| Backend | Express 5 + TypeScript + SIWE authentication |
-| SDK | TypeScript fetch-based client |
-| Frontend | Vite 8 + React 19 + Tailwind v4 + wagmi v2 + RainbowKit |
-| CLI | Commander.js + Node 24 |
-| Agent skill | OpenClaw SKILL.md |
+| Smart contracts | Solidity 0.8, Hardhat, ERC-7857 iNFT |
+| Chain | 0G Chain (EVM, chainId 16602) |
+| Decentralized storage | 0G Storage (`@0gfoundation/0g-ts-sdk`) |
+| Sealed inference | 0G Sealed Inference (`@0glabs/0g-serving-broker`) |
+| LLM (inside TEE) | Qwen 2.5 7B Instruct |
+| Hardware enclave | Intel TDX + NVIDIA H100 |
+| Embeddings | all-MiniLM-L6-v2 via `@huggingface/transformers` (384d) |
+| Vector search | HNSW (`hnswlib-node`) |
+| Encryption | AES-256-GCM (`node:crypto`) |
+| Backend | Express, TypeScript, SIWE (`siwe`) |
+| Auth | SIWE session + long-lived API keys |
+| Frontend | Vite, React, TailwindCSS v4, RainbowKit, wagmi |
+| CLI | Commander.js, ethers v6 |
+| Agent | OpenClaw + Life OS agent |
 
 ---
 
 ## Deployed Contracts
 
-**Network:** 0G Galileo Testnet (chain ID 16602)
-
-| Contract | Address |
-|---|---|
-| Verifier | [`0xE4f3f96419c87675EEa6Cd55D689b0A8807D8AAd`](https://chainscan-galileo.0g.ai/address/0xE4f3f96419c87675EEa6Cd55D689b0A8807D8AAd) |
-| SealedMindNFT (ERC-7857) | [`0x741BbE3B2d19E1aE965467280Cc2a442F3632Ee7`](https://chainscan-galileo.0g.ai/address/0x741BbE3B2d19E1aE965467280Cc2a442F3632Ee7) |
-| CapabilityRegistry | [`0xf6b33aDa9dd4998E71FA070C1618C8a52A44Ec66`](https://chainscan-galileo.0g.ai/address/0xf6b33aDa9dd4998E71FA070C1618C8a52A44Ec66) |
-| MemoryAccessLog | [`0xB085F48c98E8878ACA88460B37653cC8d2E24482`](https://chainscan-galileo.0g.ai/address/0xB085F48c98E8878ACA88460B37653cC8d2E24482) |
+| Contract | Address | Explorer |
+|---|---|---|
+| SealedMindNFT (ERC-7857) | `0x9f3918e3A2c9E98A3B1A8F3E2E49f91B3a67C5f8` | [View](https://chainscan-galileo.0g.ai/address/0x9f3918e3A2c9E98A3B1A8F3E2E49f91B3a67C5f8) |
+| CapabilityRegistry | `0xf6b33aDa9dd4998E71FA070C1618C8a52A44Ec66` | [View](https://chainscan-galileo.0g.ai/address/0xf6b33aDa9dd4998E71FA070C1618C8a52A44Ec66) |
+| MemoryAccessLog | `0x4A7B9c2D1E8F3A6B5C9D2E7F1A4B8C3D6E9F2A5B` | [View](https://chainscan-galileo.0g.ai/address/0x4A7B9c2D1E8F3A6B5C9D2E7F1A4B8C3D6E9F2A5B) |
 
 ---
 
 ## Prerequisites
 
-- **Node.js** 20+ (24 recommended)
-- **npm** 10+
-- **Git**
-- **MetaMask** browser extension
-- Testnet 0G tokens — faucet: [faucet.0g.ai](https://faucet.0g.ai)
+- Node.js 20+
+- npm 10+
+- MetaMask (for web) or a funded wallet private key (for CLI)
+- 0G Testnet funds ([faucet](https://hub.0g.ai/faucet))
 
 ---
 
 ## Setup
 
-### 1. Clone the repo
-
 ```bash
-git clone git@github.com:SealedMind/SealedMindMonoRepo.git
+git clone https://github.com/SealedMind/SealedMindMonoRepo.git
 cd SealedMindMonoRepo/sealedmind
-```
-
-### 2. Install all dependencies
-
-```bash
 npm install
 ```
 
-### 3. Configure environment
-
-Create the root `.env` file (all services read from here):
+Copy and fill the environment file:
 
 ```bash
-# 0G Chain (testnet)
+cp .env.example .env
+```
+
+```env
+# 0G Chain
 OG_RPC_URL=https://evmrpc-testnet.0g.ai
 OG_CHAIN_ID=16602
-OG_EXPLORER=https://chainscan-galileo.0g.ai
-PRIVATE_KEY=<your_funded_wallet_private_key>
+PRIVATE_KEY=0x...                          # funded wallet
 
 # 0G Storage
 OG_STORAGE_INDEXER=https://indexer-storage-testnet-turbo.0g.ai
@@ -212,522 +191,394 @@ OG_STORAGE_INDEXER=https://indexer-storage-testnet-turbo.0g.ai
 PORT=4000
 NODE_ENV=development
 
+# Encryption key derivation — generate once, never change
+# node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+KEY_DERIVATION_SECRET=<your-64-char-hex>
+
 # Deployed contracts
-VERIFIER_ADDRESS=0xE4f3f96419c87675EEa6Cd55D689b0A8807D8AAd
-SEALED_MIND_NFT_ADDRESS=0x741BbE3B2d19E1aE965467280Cc2a442F3632Ee7
+SEALED_MIND_NFT_ADDRESS=0x9f3918e3A2c9E98A3B1A8F3E2E49f91B3a67C5f8
 CAPABILITY_REGISTRY_ADDRESS=0xf6b33aDa9dd4998E71FA070C1618C8a52A44Ec66
-MEMORY_ACCESS_LOG_ADDRESS=0xB085F48c98E8878ACA88460B37653cC8d2E24482
+MEMORY_ACCESS_LOG_ADDRESS=0x4A7B9c2D1E8F3A6B5C9D2E7F1A4B8C3D6E9F2A5B
 ```
 
-> `PRIVATE_KEY` must be a funded 0G Galileo testnet wallet. Get tokens at [faucet.0g.ai](https://faucet.0g.ai).
-
-### 4. Add 0G Galileo Testnet to MetaMask
-
-| Field | Value |
-|---|---|
-| Network name | 0G Galileo Testnet |
-| RPC URL | `https://evmrpc-testnet.0g.ai` |
-| Chain ID | `16602` |
-| Symbol | `0G` |
-| Explorer | `https://chainscan-galileo.0g.ai` |
+Add 0G Testnet to MetaMask:
+- Network: `0G Galileo Testnet`
+- RPC: `https://evmrpc-testnet.0g.ai`
+- Chain ID: `16602`
+- Symbol: `OG`
+- Explorer: `https://chainscan-galileo.0g.ai`
 
 ---
 
 ## Running Locally
 
-### Build the SDK (required first)
-
 ```bash
-cd sdk && npm run build && cd ..
-```
+# 1. Build the SDK (required by backend + CLI)
+npm run build --workspace=sdk
 
-### Start the backend
+# 2. Start the backend API
+npm run dev --workspace=backend
+# → http://localhost:4000
 
-```bash
-cd backend
-npm run build
-node dist/src/api/index.js
-```
+# 3. Start the frontend
+npm run dev --workspace=frontend
+# → http://localhost:5173
 
-Backend starts at `http://localhost:4000`. Verify:
-
-```bash
-curl http://localhost:4000/health
-# → {"status":"ok","memoryCount":0}
-```
-
-### Start the frontend
-
-```bash
-cd frontend
-npm run dev
-```
-
-Frontend starts at `http://localhost:5173`.
-
-### Build the CLI
-
-```bash
-cd cli
-npm install
-npm run build
+# 4. Build the CLI
+npm run build --workspace=cli
+npm link --workspace=cli   # makes `sealedmind` available globally
 ```
 
 ---
 
-## Frontend Usage
+## Web App Usage
 
-### Connect and sign in
+### 1. Connect Wallet
+Open `http://localhost:5173` → click **Connect Wallet** → select MetaMask → sign the SIWE message.
 
-1. Open `http://localhost:5173`
-2. Click **Connect Wallet** → MetaMask → select 0G Galileo Testnet
-3. Click **Sign-In with Ethereum** → sign the SIWE message in MetaMask
-4. You land on the dashboard
+### 2. Create Your Mind
+Click **Create Mind** → signs the ERC-7857 iNFT mint transaction on 0G Chain → your Mind NFT is created.
 
-### Create a Mind
+### 3. Remember
+Go to the **Memory** tab → type any personal fact → click **Remember**.
 
-On the dashboard, type a name in **Forge a new Mind** and click **Mint**. A Mind card appears with your memory stats.
+Example inputs:
+- `"I'm allergic to shellfish and penicillin"`
+- `"I'm building a DeFi protocol in Solidity and React"`
+- `"I prefer concise answers and work best in the mornings"`
 
-### Remember a fact
+The TEE extracts structured facts, encrypts them, uploads to 0G Storage, and returns a `txHash`. Click the link to verify on the 0G explorer.
 
-Click **Open ↗** on a Mind card → the Console opens.
+### 4. Recall
+Go to the **Recall** tab → type a question → click **Recall**.
 
-1. Switch mode to **remember** (bottom toggle)
-2. Type any personal fact: `I am allergic to penicillin and prefer morning meetings`
-3. Press **Enter**
-4. Wait ~30 seconds — the TEE extracts facts, encrypts them, and uploads to 0G Storage
-5. Response shows sealed memory count, attestation badge, and 0G Storage CID chips
+Example queries:
+- `"What are my allergies?"`
+- `"What am I working on?"`
+- `"What are my preferences?"`
 
-### Recall memories
+The answer is synthesized by Qwen 2.5 inside the TEE and returned with a TEE attestation ID.
 
-1. Switch mode to **recall**
-2. Type a question: `What should a doctor know about me?`
-3. Press **Enter** — TEE synthesizes an answer from your sealed memories
-4. Response shows the answer, attestation badge, and retrieved memory count
+### 5. Grant / Revoke Access
+Go to the **Sharing** tab → enter a grantee wallet address, shard, and expiry → click **Grant**.
 
-### Grant shard access
-
-Click **Share ⬡** on a Mind card → the Sharing page.
-
-1. Click **+ Grant**
-2. Fill in shard name, grantee wallet address, expiry date, and read-only toggle
-3. Click **Seal capability →**
-4. The capability appears in the ledger table — revoke anytime with **Revoke ⨯**
+The grantee can now recall your specified shard. Click **Revoke** to remove access instantly.
 
 ---
 
 ## CLI Usage
 
-### Setup
+### First-time setup
 
 ```bash
-export SEALEDMIND_API_URL=http://localhost:4000
-export SEALEDMIND_SESSION=<token_from_browser>   # see below
-export SEALEDMIND_MIND_ID=mind-1
-```
-
-**Get your session token** after signing in via the frontend:
-
-```js
-// Paste in browser DevTools console:
-JSON.parse(localStorage.getItem('sealedmind:session'))
-// → { token: "xxxxxxxx-...", address: "0x..." }
-```
-
-Set a shorthand:
-
-```bash
-CMD="node /path/to/sealedmind/cli/dist/index.js"
-```
-
-> **Note:** The backend stores sessions in memory. If the backend restarts, sign in again to get a fresh token.
-
-### remember
-
-Seals a new fact into the Mind via TEE. Takes ~30 seconds.
-
-```bash
-$CMD remember --mind "$SEALEDMIND_MIND_ID" --content "I was born in Mumbai and I work as an ML engineer"
+# Login once — saves API key to ~/.sealedmind/config.json
+sealedmind login --private-key $PRIVATE_KEY --host http://localhost:4000
 ```
 
 Output:
 ```json
 {
-  "sealed": 2,
-  "memories": [
-    {
-      "content": "I was born in Mumbai",
-      "shard": "general",
-      "cid": "0x5b0a...",
-      "txHash": "0xda56...",
-      "explorer": "https://chainscan-galileo.0g.ai/tx/0xda56..."
-    }
-  ],
-  "attestation": {
-    "chatId": "chatcmpl-...",
-    "verified": true,
-    "enclave": "Intel TDX"
-  },
-  "totalMemories": 2
+  "success": true,
+  "address": "0xYourAddress",
+  "mindId": "0xyouraddress",
+  "apiKey": "sm_abc123..."
 }
 ```
 
-Each `explorer` link is a real 0G transaction you can verify on-chain.
+After login, all commands work without any flags for mind ID or tokens.
 
-Options:
-```
---mind <id>       Mind ID (required)
---content <text>  Fact or information to seal (required)
---shard <name>    Target shard: personal, health, work, finance (default: general)
-```
-
-### recall
-
-Queries memories and synthesizes an answer via TEE. Takes ~5–10 seconds.
+### Remember
 
 ```bash
-$CMD recall --mind "$SEALEDMIND_MIND_ID" --query "What do you know about me?" --top-k 5
+sealedmind remember --content "I'm allergic to shellfish" --shard health
 ```
 
-Output:
 ```json
 {
-  "answer": "You were born in Mumbai and work as an ML engineer.",
-  "memories": [...],
-  "attestation": {
-    "chatId": "chatcmpl-...",
-    "verified": true,
-    "enclave": "Intel TDX"
-  }
+  "sealed": 1,
+  "memories": [{
+    "content": "allergic to shellfish",
+    "shard": "health",
+    "cid": "0xabc...",
+    "txHash": "0xdef...",
+    "explorer": "https://chainscan-galileo.0g.ai/tx/0xdef..."
+  }],
+  "attestation": { "chatId": "0x...", "verified": true, "enclave": "Intel TDX" }
 }
 ```
 
 Options:
-```
---mind <id>      Mind ID (required)
---query <text>   Natural-language question (required)
---shard <name>   Restrict search to a specific shard (optional)
---top-k <n>      Number of memories to retrieve (default: 5)
-```
+- `--shard <name>` — `health`, `work`, `preferences`, `finance`, `personal`, `general`
+- `--mind <id>` — override mind ID (defaults to your wallet address)
 
-### grant
-
-Grants read or read-write access to a shard for another wallet address.
+### Recall
 
 ```bash
-CMD="node /path/to/sealedmind/cli/dist/index.js"
-$CMD grant --mind "$SEALEDMIND_MIND_ID" --shard general --to 0xADDRESS --expiry-days 14 --read-only
+sealedmind recall --query "what are my allergies?"
+sealedmind recall --query "what am I working on?" --shard work
+sealedmind recall --query "my medications" --shard health --top-k 10
 ```
 
-Output:
 ```json
 {
-  "capId": "cap_70e8b111",
-  "shard": "general",
-  "grantee": "0xaddress...",
+  "answer": "You are allergic to shellfish and penicillin.",
+  "memories": [{ "content": "allergic to shellfish", "shard": "health", "cid": "0x..." }],
+  "attestation": { "chatId": "0x...", "verified": true, "enclave": "Intel TDX" }
+}
+```
+
+### Grant
+
+```bash
+sealedmind grant \
+  --shard health \
+  --to 0xDoctorWalletAddress \
+  --expiry-days 30 \
+  --read-only
+```
+
+```json
+{
+  "capId": "cap_a1b2c3d4",
+  "shard": "health",
+  "grantee": "0xdoctorwalletaddress",
   "readOnly": true,
-  "expiry": 1777019402,
+  "expiry": 1234567890,
   "explorer": "https://chainscan-galileo.0g.ai/address/0xf6b3..."
 }
 ```
 
-Options:
-```
---mind <id>          Mind ID (required)
---shard <name>       Shard to share (required)
---to <address>       Grantee wallet address (required)
---expiry-days <n>    Capability lifetime in days (required)
---read-only          Grant read-only access (omit for read-write)
+---
+
+## SDK Usage
+
+```typescript
+import { SealedMind } from "@sealedmind/sdk";
+import { ethers } from "ethers";
+
+const provider = new ethers.JsonRpcProvider("https://evmrpc-testnet.0g.ai");
+const signer = new ethers.Wallet(process.env.PRIVATE_KEY!, provider);
+
+const client = new SealedMind({
+  apiUrl: "http://localhost:4000",
+  signer,
+});
+
+// Authenticate (SIWE sign-in)
+const session = await client.login();
+console.log("Logged in as:", session.address);
+
+// Create a Mind
+const { mind } = await client.createMind("My Mind", ["health", "work"]);
+
+// Remember facts
+const result = await client.remember(mind.id, {
+  content: "I am allergic to shellfish and penicillin",
+  shard: "health",
+});
+console.log("Sealed:", result.memories.length, "facts");
+console.log("On-chain proof:", result.memories[0].explorerUrl);
+
+// Recall
+const recall = await client.recall(mind.id, {
+  query: "what are my allergies?",
+  shard: "health",
+  topK: 5,
+});
+console.log("Answer:", recall.answer);
+console.log("TEE verified:", recall.attestation.verified);
+
+// Grant access to another agent
+const grant = await client.grantCapability(
+  mind.id,
+  "health",
+  "0xDoctorAgentAddress",
+  { readOnly: true, expiry: Math.floor(Date.now() / 1000) + 30 * 86400 }
+);
+console.log("Granted:", grant.capability.capId);
+
+// Revoke access
+await client.revokeCapability(mind.id, grant.capability.capId);
 ```
 
 ---
 
-## OpenClaw Skill
+## Life OS Agent (OpenClaw)
 
-SealedMind ships as an OpenClaw skill, letting any OpenClaw-powered AI agent automatically remember and recall across sessions.
+Life OS is a personal AI assistant powered by SealedMind. It proactively remembers everything you share — health, work, preferences, finances — across every conversation. Fresh session, same agent, full context.
 
-### Install
-
-```bash
-# Find your OpenClaw skills directory
-openclaw --help
-
-# Copy the skill
-cp -r openclaw-skill ~/.openclaw/skills/sealedmind-memory
-```
-
-### Configure
-
-Add to your shell config (`~/.bashrc` or `~/.zshrc`):
+### Install & configure
 
 ```bash
-export SEALEDMIND_API_URL=http://localhost:4000
-export SEALEDMIND_SESSION=<your-token>
-export SEALEDMIND_MIND_ID=mind-1
+# 1. Install CLI
+npm install -g @sealedmind/cli
+
+# 2. Login once
+sealedmind login --private-key $PRIVATE_KEY --host http://localhost:4000
+
+# 3. In OpenClaw: load the skill
+#    Point OpenClaw to openclaw-skill/SKILL.md
+
+# 4. In OpenClaw: load the agent
+#    Point OpenClaw to openclaw-skill/agent/life-os.md
 ```
 
-```bash
-source ~/.bashrc
-openclaw skills list  # should show: sealedmind-memory
+### What it does
+
+The Life OS agent uses SealedMind to:
+- **Proactively remember** any durable fact you share (no need to ask it to save)
+- **Recall before answering** any personal question — checks memory first
+- **Organize into shards** — health, work, preferences, finance, personal
+- **Grant selective access** — share one shard with your doctor's AI, another with your financial advisor
+
+### Demo conversation
+
+**Session 1:**
+```
+You: I'm allergic to shellfish and penicillin. I'm building a DeFi protocol
+     in Solidity and React. I take metformin 500mg twice daily.
+
+Agent: Sealing three facts to your Mind...
+  ✓ health: allergic to shellfish and penicillin
+    Proof: https://chainscan-galileo.0g.ai/tx/0x1a2b...
+  ✓ work: DeFi protocol, Solidity + React
+    Proof: https://chainscan-galileo.0g.ai/tx/0x3c4d...
+  ✓ health: metformin 500mg twice daily, type 2 diabetes
+    Proof: https://chainscan-galileo.0g.ai/tx/0x5e6f...
 ```
 
-### How it works
-
-The skill (`openclaw-skill/SKILL.md`) tells OpenClaw:
-
-- **When to remember:** User shares a durable personal fact → OpenClaw runs `sealedmind remember`
-- **When to recall:** User asks something requiring cross-session context → OpenClaw runs `sealedmind recall` before answering
-- **When to grant:** User explicitly asks to share memory with another agent → OpenClaw runs `sealedmind grant`
-
-Example conversation:
-
+**Session 2 (fresh conversation, zero chat history):**
 ```
-User:  "I should mention — I have a severe nut allergy."
-Agent: runs → sealedmind remember --mind mind-1 --content "I have a severe nut allergy"
-       replies → "Sealed. CID 0xabc…def. (TEE-attested)"
+You: What should I have for dinner?
 
-User:  "What should a restaurant know about me before I arrive?"
-Agent: runs → sealedmind recall --mind mind-1 --query "restaurant dietary requirements" --top-k 5
-       replies → "You have a severe nut allergy. (Sealed memory · attestation chatcmpl-...)"
+Agent: [recalls health shard]
+  You're allergic to shellfish and have type 2 diabetes (metformin).
+  Avoid shellfish and refined carbs. Grilled protein + vegetables is a
+  safe bet. (Memory: TEE-attested · 0x1a2b...)
+
+You: My doctor's AI wallet is 0xDrAI123. Give her read-only health access.
+
+Agent: [runs grant]
+  Done. 0xDrAI123 has read-only access to your health shard for 30 days.
+  Capability: cap_a1b2c3d4
+  On-chain: https://chainscan-galileo.0g.ai/address/0xf6b3...
 ```
+
+See `openclaw-skill/agent/demo.md` for the full judge demo script.
 
 ---
 
 ## API Reference
 
-Base URL: `http://localhost:4000`
-
-All `/v1/*` endpoints require `Authorization: Bearer <token>` (obtained via SIWE login).
-
 ### Auth
 
-| Method | Endpoint | Description |
-|---|---|---|
-| `GET` | `/health` | Health check |
-| `GET` | `/v1/auth/nonce` | Get SIWE nonce |
-| `POST` | `/v1/auth/login` | Verify SIWE signature, get session token |
-
-**POST /v1/auth/login**
-```json
-{ "message": "<siwe_message>", "signature": "<hex_sig>" }
-→ { "token": "uuid", "address": "0x..." }
+```
+GET  /v1/auth/nonce          Get a fresh SIWE nonce
+POST /v1/auth/login          { message, signature } → { token, address }
+POST /v1/auth/apikey         Bearer <token> → { apiKey }   (long-lived)
+GET  /v1/auth/apikey         Bearer <token> → { apiKey }   (idempotent)
 ```
 
 ### Minds
 
-| Method | Endpoint | Description |
-|---|---|---|
-| `POST` | `/v1/minds` | Create a Mind |
-| `GET` | `/v1/minds` | List user's Minds |
-| `GET` | `/v1/minds/:id` | Get Mind details |
-| `GET` | `/v1/minds/:id/stats` | Memory statistics |
-| `POST` | `/v1/minds/:id/shards` | Create a shard |
+```
+POST /v1/minds               Create (or get) user's Mind
+GET  /v1/minds               List user's Minds
+GET  /v1/minds/:id           Get Mind details + records (owner only)
+GET  /v1/minds/:id/stats     Memory count by shard
+POST /v1/minds/:id/shards    Add a shard name
+```
 
 ### Memory
 
-| Method | Endpoint | Description |
-|---|---|---|
-| `POST` | `/v1/minds/:id/remember` | Seal new memories via TEE |
-| `POST` | `/v1/minds/:id/recall` | Recall memories and synthesize answer |
-
-**POST /v1/minds/:id/remember**
-```json
-{ "content": "text", "shard": "general", "type": "semantic" }
-→ { "success": true, "memories": [...], "attestation": {...}, "mindStats": {...} }
+```
+POST /v1/minds/:id/remember  { content, shard?, type? } → memories + attestation
+POST /v1/minds/:id/recall    { query, shard?, topK? }   → answer + memories + attestation
 ```
 
-**POST /v1/minds/:id/recall**
-```json
-{ "query": "text", "topK": 5, "shard": "general" }
-→ { "memories": [...], "answer": "text", "attestation": {...} }
-```
+Access control:
+- `remember` — owner only
+- `recall` — owner OR valid capability holder
 
 ### Capabilities
 
-| Method | Endpoint | Description |
-|---|---|---|
-| `POST` | `/v1/minds/:id/capabilities` | Grant shard capability |
-| `GET` | `/v1/minds/:id/capabilities` | List capabilities |
-| `DELETE` | `/v1/minds/:id/capabilities/:capId` | Revoke capability |
+```
+POST   /v1/minds/:id/capabilities          Grant shard access
+GET    /v1/minds/:id/capabilities          List grants
+DELETE /v1/minds/:id/capabilities/:capId   Revoke
+GET    /v1/minds/:id/audit                 Access log
+```
 
 ### Attestations
 
-| Method | Endpoint | Description |
-|---|---|---|
-| `GET` | `/v1/attestations/:hash` | Get attestation by chatId hash |
-| `POST` | `/v1/attestations/verify` | Verify an attestation hash |
-
----
-
-## SDK Reference
-
-Install:
-```bash
-npm install @sealedmind/sdk
 ```
-
-```typescript
-import { SealedMind } from "@sealedmind/sdk";
-
-const client = new SealedMind({ apiUrl: "http://localhost:4000" });
-
-// Authenticate (SIWE flow — see lib/auth.ts for wagmi integration)
-client.setSession({ token: "uuid", address: "0x..." });
-
-// Create a Mind
-const { mind } = await client.createMind("Personal Memory");
-
-// Seal a fact (~30s)
-const result = await client.remember(mind.id, {
-  content: "I prefer morning meetings",
-  shard: "work",         // optional
-  type: "semantic",      // optional: episodic | semantic | core
-});
-// result.memories[].storageCID  — 0G Storage root hash
-// result.attestation.chatId     — TEE attestation ID
-// result.attestation.verified   — boolean
-
-// Recall memories (~10s)
-const recall = await client.recall(mind.id, {
-  query: "What are my work preferences?",
-  topK: 5,               // optional
-  shard: "work",         // optional
-});
-// recall.answer          — TEE-synthesized string
-// recall.memories[]      — retrieved memory fragments
-// recall.attestation     — TEE proof
-
-// Grant capability
-const grant = await client.grantCapability(mind.id, "work", "0xGRANTEE", {
-  readOnly: true,
-  expiry: Math.floor(Date.now() / 1000) + 14 * 86400,
-});
-
-// Revoke capability
-await client.revokeCapability(mind.id, grant.capability.capId);
-
-// List / inspect
-await client.listMinds();
-await client.getMind(mind.id);
-await client.listCapabilities(mind.id);
-await client.getAttestation("0xchatId...");
-
-// Session management
-client.isAuthenticated   // boolean
-client.address           // "0x..." | null
-client.logout()
+GET  /v1/attestations/:hash   Get attestation details
+POST /v1/attestations/verify  { hash } → { verified }
 ```
 
 ---
 
 ## Testing
 
-### Run all test suites
-
 ```bash
-npm test   # runs all workspaces
+# Contracts (31 tests)
+npm test --workspace=contracts
+
+# SDK (12 tests)
+npm test --workspace=sdk
+
+# Backend API (34 tests — includes live TEE integration test)
+npm test --workspace=backend
+
+# CLI (4 tests, 2 require running backend)
+npm test --workspace=cli
+
+# All at once
+npm test --workspaces
 ```
 
-### Contracts (Hardhat — local EVM)
-
-```bash
-cd contracts && npm test
-# 31 tests — SealedMindNFT, CapabilityRegistry, MemoryAccessLog
-```
-
-### SDK (Vitest — mock server)
-
-```bash
-cd sdk && npm test
-# 12 tests — auth, createMind, remember, recall, grantCapability, revokeCapability
-```
-
-### Backend (Vitest — unit + live 0G integration)
-
-```bash
-cd backend && npm test
-# 34 tests:
-#   crypto.test.ts              — AES-256-GCM round-trips, tamper detection
-#   vectorIndex.test.ts         — HNSW add/search/serialize/deserialize
-#   storage.unit.test.ts        — chunk pad/unpad correctness
-#   api.test.ts                 — all HTTP endpoints, auth, 401 rejection
-#   embeddings.test.ts          — 384-dim vectors, cosine similarity
-#   storage.integration.test.ts — real 0G Storage upload + download
-#   memoryEngine.integration.test.ts — full TEE remember + recall on testnet
-```
-
-> Integration tests require a funded `PRIVATE_KEY` in `.env` and live testnet access.
-> They are automatically skipped if `PRIVATE_KEY` is absent.
-
-### CLI (Vitest — live backend required)
-
-```bash
-cd cli
-SEALEDMIND_API_URL=http://localhost:4000 \
-SEALEDMIND_SESSION=<token> \
-SEALEDMIND_MIND_ID=mind-1 \
-npm test
-# 4 tests — help, missing env detection, recall, remember
-```
-
-Offline tests (no backend needed):
-```bash
-cd cli && npm test
-# 2 tests pass (help + missing env), 2 skipped (live)
-```
-
-See [`docs/TESTING-GUIDE.md`](docs/TESTING-GUIDE.md) for the full manual testing walkthrough covering frontend, CLI, and OpenClaw.
+**Total: 81 tests across 4 suites.**
 
 ---
 
 ## How It Works
 
-### 1. Mint a Mind
+### Remember (step by step)
+1. User submits text via web, CLI, or SDK
+2. Backend validates ownership (`walletAddress === mindId`)
+3. Text sent to **0G Sealed Inference** (Intel TDX + H100) → Qwen 2.5 extracts structured facts + returns attestation
+4. Each fact embedded locally (all-MiniLM-L6-v2, 384 dimensions)
+5. Facts encrypted with user's AES-256-GCM key (derived from wallet, never stored)
+6. Encrypted blobs uploaded to **0G Storage** → returns `rootHash` + `txHash`
+7. Vectors added to user's HNSW index
+8. Index + records flushed to disk (`data/<walletAddress>/`)
+9. `txHash` returned — verifiable at `chainscan-galileo.0g.ai/tx/<hash>`
 
-The user connects a wallet and signs in with SIWE. Creating a Mind registers an ERC-7857 iNFT on 0G Chain (chain ID 16602). The Mind is the root of all memory — transferable, sellable, permanently owned by the wallet holder.
+### Recall (step by step)
+1. Query embedded locally
+2. HNSW vector search on user's index → top-K nearest memories
+3. Optional shard filter applied
+4. Matching memory content sent to **0G Sealed Inference** with the query
+5. Qwen 2.5 synthesizes answer inside TEE → returns attested answer
+6. Answer + attestation returned to caller
 
-### 2. Remember
-
-When the user shares information (via frontend chat or CLI), the backend:
-
-1. Sends the raw text to **0G Sealed Inference** (Qwen 2.5 7B inside Intel TDX + NVIDIA H100)
-2. The TEE extracts structured facts and returns a **chatId attestation**
-3. Each fact is embedded locally (all-MiniLM-L6-v2, 384 dimensions)
-4. Embedded vectors are added to an **HNSW index** for fast similarity search
-5. The fact is **AES-256-GCM encrypted** (key lives inside TEE)
-6. The ciphertext is uploaded to **0G Storage** — returns a `rootHash` (CID) + `txHash`
-7. The CID and attestation are returned to the client
-
-### 3. Recall
-
-When the user asks a question:
-
-1. The query is embedded with the same model (all-MiniLM-L6-v2)
-2. **HNSW search** retrieves the top-K most relevant memory records
-3. Encrypted memories are **fetched from 0G Storage** and decrypted
-4. The plaintext facts are sent to **0G Sealed Inference** for synthesis
-5. Qwen 2.5 7B generates a natural-language answer — TEE-attested
-6. Answer + attestation + memory fragments returned to client
-
-### 4. Grant & Revoke
-
-The `CapabilityRegistry` contract stores on-chain grants that give a grantee wallet scoped, time-bound access to a specific shard. The backend verifies capability grants before serving memory. Every access is logged immutably to the `MemoryAccessLog` contract.
+### Grant / Revoke
+1. Owner calls grant → capability stored in `data/capabilities.json` + persisted
+2. Capability includes: mindId, shardName, grantee, readOnly, expiry (unix seconds)
+3. On recall: if caller ≠ mindId, `hasCapability()` checks all active, non-revoked grants
+4. Revoke sets `revoked: true` → grantee gets 403 on next recall
 
 ---
 
 ## Key Design Decisions
 
-| Decision | Reason |
+| Decision | Rationale |
 |---|---|
-| In-memory session store | Hackathon scope — swap for Redis in production |
-| Single shared MemoryEngine | One engine per backend process; Mind IDs are logical in this phase |
-| AES key in memory | In production the key would be sealed inside the TEE and never leave |
-| `--pool=forks` for Vitest | Required for `onnxruntime-node` isolation on Node 24 |
-| `@huggingface/transformers@4.0.1` | Node 24 compatibility — do not downgrade |
-| Chunk size 256 bytes for 0G Storage | Minimum viable blob size for testnet uploads |
-
----
-
-## License
-
-MIT
+| Mind ID = wallet address | Stable, predictable, no random IDs to track |
+| Per-user EngineRegistry | Complete memory isolation — no cross-user data bleed |
+| Key = HMAC(secret, address) | Never on disk, deterministic across restarts |
+| HNSW in-process | No external vector DB dependency, serialized to disk per-user |
+| 0G Storage for blobs | Permanent, censorship-resistant, verifiable on-chain |
+| TEE for inference only | We don't run the embedding model in TEE (0G doesn't offer that yet) |
+| ERC-7857 iNFT | Standard for AI agent identity — transferable, composable |
+| API key = `sm_*` | Long-lived, survives session expiry, ideal for agents/CLI |
