@@ -14,3 +14,7 @@ coverage/
 .DS_Store
 .vercel
 deployments/localhost/
+
+# Persisted memory state (encryption key + index + records)
+backend/data/
+data/

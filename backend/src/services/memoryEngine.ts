@@ -1,3 +1,5 @@
+import fs from "node:fs";
+import path from "node:path";
 import { InferenceService, type ExtractedFact, type InferenceConfig } from "./inference.js";
 import { embed, EMBEDDING_DIM } from "./embeddings.js";
 import { VectorIndex, type SearchResult } from "./vectorIndex.js";
@@ -43,6 +45,7 @@ export interface RecallResult {
 export interface MemoryEngineConfig {
   inference: InferenceConfig;
   storage: StorageConfig;
+  dataDir?: string; // directory for persisted state (key, index, records)
 }
 
 export class MemoryEngine {
@@ -52,17 +55,62 @@ export class MemoryEngine {
   private records: Map<number, MemoryRecord> = new Map();
   private encryptionKey: Buffer;
   private nextId: number = 0;
+  private dataDir: string;
+
+  // Paths for persisted state
+  private get keyPath()     { return path.join(this.dataDir, "sealedmind.key"); }
+  private get recordsPath() { return path.join(this.dataDir, "sealedmind-records.json"); }
+  private get indexPath()   { return path.join(this.dataDir, "sealedmind-index.bin"); }
 
   constructor(cfg: MemoryEngineConfig) {
     this.inference = new InferenceService(cfg.inference);
     this.storage = new StorageService(cfg.storage);
+    this.dataDir = cfg.dataDir ?? path.resolve("data");
+    fs.mkdirSync(this.dataDir, { recursive: true });
+
+    // Load or generate encryption key
+    if (fs.existsSync(this.keyPath)) {
+      this.encryptionKey = Buffer.from(fs.readFileSync(this.keyPath, "utf8"), "hex");
+    } else {
+      this.encryptionKey = generateKey();
+      fs.writeFileSync(this.keyPath, this.encryptionKey.toString("hex"), "utf8");
+    }
+
     this.index = new VectorIndex(EMBEDDING_DIM);
-    this.encryptionKey = generateKey();
   }
 
-  /** Initialize the inference broker (must call before remember/recall). */
+  /** Initialize the inference broker and restore persisted state. */
   async init(): Promise<void> {
     await this.inference.init();
+    this.loadState();
+  }
+
+  /** Reload records + HNSW index from disk. */
+  private loadState(): void {
+    if (fs.existsSync(this.recordsPath)) {
+      const { nextId, records } = JSON.parse(fs.readFileSync(this.recordsPath, "utf8"));
+      this.nextId = nextId;
+      for (const r of records as MemoryRecord[]) {
+        this.records.set(r.id, r);
+      }
+      console.log(`Restored ${this.records.size} memories from disk.`);
+    }
+
+    if (fs.existsSync(this.indexPath)) {
+      const buf = fs.readFileSync(this.indexPath);
+      this.index = VectorIndex.deserialize(buf, EMBEDDING_DIM);
+      console.log(`Restored HNSW index (${this.index.size} vectors) from disk.`);
+    }
+  }
+
+  /** Flush records + HNSW index to disk after each write. */
+  private saveState(): void {
+    fs.writeFileSync(
+      this.recordsPath,
+      JSON.stringify({ nextId: this.nextId, records: Array.from(this.records.values()) }),
+      "utf8"
+    );
+    fs.writeFileSync(this.indexPath, this.index.serialize());
   }
 
   /**
@@ -110,6 +158,8 @@ export class MemoryEngine {
       storageCIDs.push(rootHash);
       txHashes.push(txHash);
     }
+
+    this.saveState();
 
     return {
       memories,
