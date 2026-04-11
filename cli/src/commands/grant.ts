@@ -9,7 +9,7 @@ export async function grant(opts: {
 }) {
   const sm = getClient();
   const mindId = getMindId(opts.mind);
-  const expiry = Math.floor(Date.now() / 1000) + Number(opts.expiryDays) * 86400;
+  const expiry = Math.floor(Date.now() / 1000) + Number(opts.expiryDays) * 86400; // unix seconds
   const r = await sm.grantCapability(mindId, opts.shard, opts.to, {
     readOnly: !!opts.readOnly,
     expiry,

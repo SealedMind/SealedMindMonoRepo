@@ -11,7 +11,7 @@ interface CapabilityEntry {
   shardName: string;
   grantee: string;
   readOnly: boolean;
-  expiry: number;  // unix ms, 0 = never
+  expiry: number;  // unix seconds, 0 = never
   revoked: boolean;
   grantedAt: string;
 }
@@ -42,13 +42,13 @@ loadCaps();
  * If `shardName` is provided, the capability must cover that shard (or "*").
  */
 export function hasCapability(mindId: string, grantee: string, shardName?: string): boolean {
-  const now = Date.now();
+  const nowSec = Math.floor(Date.now() / 1000);
   for (const cap of capabilities.values()) {
     if (
       cap.mindId.toLowerCase()  === mindId.toLowerCase()  &&
       cap.grantee.toLowerCase() === grantee.toLowerCase() &&
       !cap.revoked &&
-      (cap.expiry === 0 || cap.expiry > now) &&
+      (cap.expiry === 0 || cap.expiry > nowSec) &&
       (!shardName || cap.shardName === shardName || cap.shardName === "*")
     ) {
       return true;
