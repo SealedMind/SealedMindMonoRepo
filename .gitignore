@@ -18,3 +18,7 @@ deployments/localhost/
 # Persisted memory state (encryption key + index + records)
 backend/data/
 data/
+
+# Local docs (not for repo)
+PPT_CONTENT.md
+DEMO_SCRIPT.md
