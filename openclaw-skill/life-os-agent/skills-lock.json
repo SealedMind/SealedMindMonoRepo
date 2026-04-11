@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "skills": {
+    "sealedmind-memory": {
+      "source": "local",
+      "sourceType": "local",
+      "path": "./skills/sealedmind"
+    }
+  }
+}
