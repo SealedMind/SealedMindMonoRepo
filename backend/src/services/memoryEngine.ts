@@ -45,7 +45,8 @@ export interface RecallResult {
 export interface MemoryEngineConfig {
   inference: InferenceConfig;
   storage: StorageConfig;
-  dataDir?: string; // directory for persisted state (key, index, records)
+  dataDir?: string;        // directory for persisted index + records
+  encryptionKey?: Buffer;  // if provided, used directly (never written to disk)
 }
 
 export class MemoryEngine {
@@ -57,8 +58,7 @@ export class MemoryEngine {
   private nextId: number = 0;
   private dataDir: string;
 
-  // Paths for persisted state
-  private get keyPath()     { return path.join(this.dataDir, "sealedmind.key"); }
+  // Paths for persisted index + records (key is never written to disk)
   private get recordsPath() { return path.join(this.dataDir, "sealedmind-records.json"); }
   private get indexPath()   { return path.join(this.dataDir, "sealedmind-index.bin"); }
 
@@ -68,13 +68,8 @@ export class MemoryEngine {
     this.dataDir = cfg.dataDir ?? path.resolve("data");
     fs.mkdirSync(this.dataDir, { recursive: true });
 
-    // Load or generate encryption key
-    if (fs.existsSync(this.keyPath)) {
-      this.encryptionKey = Buffer.from(fs.readFileSync(this.keyPath, "utf8"), "hex");
-    } else {
-      this.encryptionKey = generateKey();
-      fs.writeFileSync(this.keyPath, this.encryptionKey.toString("hex"), "utf8");
-    }
+    // Use provided key (EngineRegistry path) or generate ephemeral key (test/standalone path)
+    this.encryptionKey = cfg.encryptionKey ?? generateKey();
 
     this.index = new VectorIndex(EMBEDDING_DIM);
   }

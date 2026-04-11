@@ -1,12 +1,13 @@
-import { getClient } from "../lib/client.js";
+import { getClient, getMindId } from "../lib/client.js";
 
 export async function remember(opts: {
-  mind: string;
+  mind?: string;
   content: string;
   shard?: string;
 }) {
   const sm = getClient();
-  const r = await sm.remember(opts.mind, {
+  const mindId = getMindId(opts.mind);
+  const r = await sm.remember(mindId, {
     content: opts.content,
     shard: opts.shard,
   });

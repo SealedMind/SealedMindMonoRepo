@@ -1,16 +1,16 @@
-import { getClient } from "../lib/client.js";
+import { getClient, getMindId } from "../lib/client.js";
 
 export async function grant(opts: {
-  mind: string;
+  mind?: string;
   shard: string;
   to: string;
   expiryDays: string;
   readOnly?: boolean;
 }) {
   const sm = getClient();
-  const expiry =
-    Math.floor(Date.now() / 1000) + Number(opts.expiryDays) * 86400;
-  const r = await sm.grantCapability(opts.mind, opts.shard, opts.to, {
+  const mindId = getMindId(opts.mind);
+  const expiry = Math.floor(Date.now() / 1000) + Number(opts.expiryDays) * 86400;
+  const r = await sm.grantCapability(mindId, opts.shard, opts.to, {
     readOnly: !!opts.readOnly,
     expiry,
   });

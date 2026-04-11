@@ -12,7 +12,9 @@
   },
   "dependencies": {
     "@sealedmind/sdk": "*",
-    "commander": "^12.0.0"
+    "commander": "^12.0.0",
+    "ethers": "^6.16.0",
+    "siwe": "^3.0.0"
   },
   "devDependencies": {
     "@types/node": "^20.12.0",

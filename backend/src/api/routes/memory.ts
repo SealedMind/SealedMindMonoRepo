@@ -1,32 +1,37 @@
 import { Router, Request, Response } from "express";
 import { requireAuth } from "../middleware/auth.js";
-import type { MemoryEngine } from "../../services/memoryEngine.js";
+import { hasCapability } from "./capabilities.js";
+import type { EngineRegistry } from "../../services/engineRegistry.js";
 
-/**
- * Memory operation endpoints per §11.
- *
- * POST /minds/:id/remember — store a memory (routed through Sealed Inference)
- * POST /minds/:id/recall   — recall memories (routed through Sealed Inference)
- */
+const MAX_CONTENT_LENGTH = 10_000;
 
-export function createMemoryRouter(engine: MemoryEngine) {
+export function createMemoryRouter(registry: EngineRegistry) {
   const router = Router();
 
-  /** POST /minds/:id/remember */
+  /** POST /minds/:id/remember — seal a memory (owner only). */
   router.post("/:id/remember", requireAuth, async (req: Request, res: Response) => {
     try {
-      const { content, shard, type, tags } = req.body;
+      const mindId  = String(req.params.id).toLowerCase();
+      const caller  = req.walletAddress!.toLowerCase();
 
+      // Only the mind owner can write memories
+      if (caller !== mindId) {
+        res.status(403).json({ error: "Only the mind owner can add memories" });
+        return;
+      }
+
+      const { content, shard, type } = req.body;
       if (!content) {
         res.status(400).json({ error: "content is required" });
         return;
       }
+      if (typeof content !== "string" || content.length > MAX_CONTENT_LENGTH) {
+        res.status(400).json({ error: `content must be a string under ${MAX_CONTENT_LENGTH} characters` });
+        return;
+      }
 
-      const result = await engine.remember(
-        content,
-        shard || "general",
-        type || "semantic"
-      );
+      const engine = await registry.getOrCreate(mindId);
+      const result = await engine.remember(content, shard || "general", type || "semantic");
 
       res.json({
         success: true,
@@ -48,25 +53,34 @@ export function createMemoryRouter(engine: MemoryEngine) {
           verified: result.attestation.attestationValid,
           enclave: "Intel TDX",
         },
-        mindStats: {
-          totalMemories: engine.memoryCount,
-        },
+        mindStats: { totalMemories: engine.memoryCount },
       });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }
   });
 
-  /** POST /minds/:id/recall */
+  /** POST /minds/:id/recall — recall memories (owner or grantee). */
   router.post("/:id/recall", requireAuth, async (req: Request, res: Response) => {
     try {
-      const { query, shard, topK, includeAttestation } = req.body;
+      const mindId  = String(req.params.id).toLowerCase();
+      const caller  = req.walletAddress!.toLowerCase();
+      const isOwner = caller === mindId;
 
+      const { query, shard, topK, includeAttestation } = req.body;
       if (!query) {
         res.status(400).json({ error: "query is required" });
         return;
       }
 
+      // Access control: owner always allowed; others need a valid capability
+      if (!isOwner && !hasCapability(mindId, caller, shard)) {
+        res.status(403).json({ error: "Access denied: no capability granted for this mind/shard" });
+        return;
+      }
+
+      // Always use the owner's engine to access their memories
+      const engine = await registry.getOrCreate(mindId);
       const result = await engine.recall(query, topK || 5, shard);
 
       const response: any = {

@@ -1,13 +1,14 @@
-import { getClient } from "../lib/client.js";
+import { getClient, getMindId } from "../lib/client.js";
 
 export async function recall(opts: {
-  mind: string;
+  mind?: string;
   query: string;
   shard?: string;
   topK?: string;
 }) {
   const sm = getClient();
-  const r = await sm.recall(opts.mind, {
+  const mindId = getMindId(opts.mind);
+  const r = await sm.recall(mindId, {
     query: opts.query,
     shard: opts.shard,
     topK: opts.topK ? Number(opts.topK) : 5,
