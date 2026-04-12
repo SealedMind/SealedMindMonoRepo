@@ -26,6 +26,9 @@
     "siwe": "^3.0.0",
     "uuid": "^13.0.0"
   },
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "devDependencies": {
     "@types/node": "^20.12.0",
     "@types/supertest": "^7.2.0",

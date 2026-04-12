@@ -1,5 +1,9 @@
 import { ethers } from "ethers";
-import { createZGComputeNetworkBroker } from "@0glabs/0g-serving-broker";
+import { createRequire } from "module";
+
+// @0glabs/0g-serving-broker ships a broken ESM build — force CJS via createRequire
+const require = createRequire(import.meta.url);
+const { createZGComputeNetworkBroker } = require("@0glabs/0g-serving-broker");
 
 /**
  * Wraps 0G Sealed Inference (TEE) for fact extraction.
