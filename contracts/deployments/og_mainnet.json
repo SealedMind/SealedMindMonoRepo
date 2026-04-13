@@ -1,0 +1,12 @@
+{
+  "network": "og_mainnet",
+  "chainId": 16661,
+  "deployer": "0x21fc05b215FBDB9bfAdDc5EC12595E1154DE2302",
+  "timestamp": "2026-04-13T04:30:44.628Z",
+  "contracts": {
+    "Verifier": "0x6D5B3B81119F78366B767DB81C2dd6625d5648Af",
+    "SealedMindNFT": "0x091CfC4b9E6FF0026F384b8c4664B8C03Af21EA6",
+    "CapabilityRegistry": "0xeb2F5C59A38F0f2339F5B399e4EDeF1FA834FA45",
+    "MemoryAccessLog": "0xec9321C66aD8D73FB8f8D80736e1b6C47570c5Ad"
+  }
+}

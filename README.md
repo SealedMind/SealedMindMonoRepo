@@ -147,11 +147,27 @@ sealedmind/
 
 ## Deployed Contracts
 
+### Mainnet — 0G Mainnet (Chain ID: 16661)
+
 | Contract | Address | Explorer |
 |---|---|---|
-| SealedMindNFT (ERC-7857) | `0x9f3918e3A2c9E98A3B1A8F3E2E49f91B3a67C5f8` | [View](https://chainscan-galileo.0g.ai/address/0x9f3918e3A2c9E98A3B1A8F3E2E49f91B3a67C5f8) |
+| SealedMindNFT (ERC-7857) | `0x091CfC4b9E6FF0026F384b8c4664B8C03Af21EA6` | [View](https://chainscan.0g.ai/address/0x091CfC4b9E6FF0026F384b8c4664B8C03Af21EA6) |
+| CapabilityRegistry | `0xeb2F5C59A38F0f2339F5B399e4EDeF1FA834FA45` | [View](https://chainscan.0g.ai/address/0xeb2F5C59A38F0f2339F5B399e4EDeF1FA834FA45) |
+| MemoryAccessLog | `0xec9321C66aD8D73FB8f8D80736e1b6C47570c5Ad` | [View](https://chainscan.0g.ai/address/0xec9321C66aD8D73FB8f8D80736e1b6C47570c5Ad) |
+| Verifier | `0x6D5B3B81119F78366B767DB81C2dd6625d5648Af` | [View](https://chainscan.0g.ai/address/0x6D5B3B81119F78366B767DB81C2dd6625d5648Af) |
+
+Deployer: `0x21fc05b215FBDB9bfAdDc5EC12595E1154DE2302`
+
+### Testnet — 0G Newton Testnet (Chain ID: 16602)
+
+| Contract | Address | Explorer |
+|---|---|---|
+| SealedMindNFT (ERC-7857) | `0x741BbE3B2d19E1aE965467280Cc2a442F3632Ee7` | [View](https://chainscan-galileo.0g.ai/address/0x741BbE3B2d19E1aE965467280Cc2a442F3632Ee7) |
 | CapabilityRegistry | `0xf6b33aDa9dd4998E71FA070C1618C8a52A44Ec66` | [View](https://chainscan-galileo.0g.ai/address/0xf6b33aDa9dd4998E71FA070C1618C8a52A44Ec66) |
-| MemoryAccessLog | `0x4A7B9c2D1E8F3A6B5C9D2E7F1A4B8C3D6E9F2A5B` | [View](https://chainscan-galileo.0g.ai/address/0x4A7B9c2D1E8F3A6B5C9D2E7F1A4B8C3D6E9F2A5B) |
+| MemoryAccessLog | `0xB085F48c98E8878ACA88460B37653cC8d2E24482` | [View](https://chainscan-galileo.0g.ai/address/0xB085F48c98E8878ACA88460B37653cC8d2E24482) |
+| Verifier | `0xE4f3f96419c87675EEa6Cd55D689b0A8807D8AAd` | [View](https://chainscan-galileo.0g.ai/address/0xE4f3f96419c87675EEa6Cd55D689b0A8807D8AAd) |
+
+Deployer: `0xE74686Fd89ACB480B3903724C367395d86ED4519`
 
 ---
 
