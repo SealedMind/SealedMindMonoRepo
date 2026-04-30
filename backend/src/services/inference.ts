@@ -110,6 +110,57 @@ Be precise. No commentary outside the JSON array.`,
   }
 
   /**
+   * Generic chat completion against the TEE-hosted LLM (Qwen 2.5 7B in Intel TDX).
+   *
+   * Lets external callers — including LangGraph agents using SealedMind as their
+   * brain — do arbitrary chat with attestation. Returns the assistant message
+   * plus the TEE attestation result.
+   *
+   * Note: this exposes the broker's chat capability raw; callers are responsible
+   * for their own prompt structure. Use `synthesize()` for memory-grounded answers.
+   */
+  async chat(
+    messages: { role: string; content: string }[],
+    opts: { maxTokens?: number; temperature?: number } = {}
+  ): Promise<{ content: string; chatId: string; attestationValid: boolean; model: string }> {
+    if (!this.broker || !this.providerAddr) throw new Error("Call init() first");
+
+    const { endpoint, model } = await this.broker.inference.getServiceMetadata(this.providerAddr);
+    const headers = await this.broker.inference.getRequestHeaders(this.providerAddr);
+
+    const resp = await fetch(`${endpoint}/chat/completions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...headers },
+      body: JSON.stringify({
+        messages,
+        model,
+        max_tokens: opts.maxTokens ?? 512,
+        temperature: opts.temperature ?? 0.3,
+      }),
+    });
+
+    if (!resp.ok) {
+      const body = await resp.text().catch(() => "");
+      throw new Error(`Chat failed: ${resp.status} ${resp.statusText} — ${body}`);
+    }
+
+    const data = await resp.json();
+    const content = data.choices?.[0]?.message?.content ?? "";
+    const chatId = resp.headers.get("ZG-Res-Key") || data.id || "";
+
+    let attestationValid = false;
+    if (chatId) {
+      try {
+        attestationValid = await this.broker.inference.processResponse(this.providerAddr, chatId);
+      } catch {
+        attestationValid = false;
+      }
+    }
+
+    return { content, chatId, attestationValid, model };
+  }
+
+  /**
    * Chat completion for recall synthesis — given retrieved memories and a query,
    * produce a natural-language answer. Also runs inside TEE.
    */

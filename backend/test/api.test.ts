@@ -41,8 +41,18 @@ const mockRegistry = {
 let app: express.Express;
 let authToken: string;
 
+// Mock InferenceService for the new /v1/inference/chat route
+const mockInference = {
+  chat: vi.fn().mockResolvedValue({
+    content: "mock chat reply",
+    chatId: "chat-mock",
+    attestationValid: true,
+    model: "qwen-2.5-7b-mock",
+  }),
+} as any;
+
 beforeAll(async () => {
-  app = createApp(mockRegistry);
+  app = createApp(mockRegistry, mockInference);
 
   // Create a session directly for testing (bypasses SIWE signature verification)
   const { token } = await createSession(

@@ -22,3 +22,21 @@ data/
 # Local docs (not for repo)
 PPT_CONTENT.md
 DEMO_SCRIPT.md
+SUBMISSION.md
+EVERMEMOS_INTEGRATION_PLAN.md
+evermemos-sealedmind/DEMO_RECORDING_SCRIPT.md
+evermemos-sealedmind/DEVREL_PROOF.md
+evermemos-sealedmind/PRODUCTION_CHECKLIST.md
+evermemos-sealedmind/RECORDING_QUICKSTART.md
+
+# OpenClaw runtime state (per-machine)
+openclaw-skill/*/.openclaw/
+
+# Python (for evermemos-sealedmind subpackage)
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/

@@ -1,0 +1,59 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg
+*.egg-info/
+build/
+dist/
+wheels/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+env/
+.python-version
+
+# Test / coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.mypy_cache/
+.ruff_cache/
+coverage.xml
+*.cover
+
+# IDE / editor
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Local secrets / artifacts
+.env
+.env.*
+!.env.example
+*.sqlite
+*.sqlite3
+*.db
+
+# evermemos-sealedmind runtime data
+user_secrets_backup.enc
+user_secrets_backup.json
+.0g_secrets
+
+# Logs
+*.log
+log_*.txt
+/tmp/
+
+# Node sidecar (legacy, removed — guard against re-add)
+sidecar/node_modules/
+node_modules/
+package-lock.json
