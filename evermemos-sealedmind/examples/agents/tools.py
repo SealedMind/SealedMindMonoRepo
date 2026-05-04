@@ -53,20 +53,34 @@ TOOL_SCHEMAS = {
     "recall": {
         "name": "recall",
         "description": (
-            "Retrieve previously stored memories. The agent supplies a key "
-            "of interest. If the agent has a capability_token (because the "
-            "memory is owned by another user), the gateway verifies the "
-            "capability on chain before returning the data."
+            "Retrieve a previously stored memory by its exact key. The agent "
+            "must supply the precise key string. If the agent has a "
+            "capability_token (because the memory is owned by another user), "
+            "the gateway verifies the capability on chain before returning "
+            "the data. If you don't know the exact key, call `list_shard` "
+            "first to discover available memories."
         ),
         "input_schema": {
             "type": "object",
             "properties": {
                 "key": {
                     "type": "string",
-                    "description": "The memory key to retrieve.",
+                    "description": "The exact memory key to retrieve.",
                 },
             },
             "required": ["key"],
+        },
+    },
+    "list_shard": {
+        "name": "list_shard",
+        "description": (
+            "List recent memory keys in the agent's accessible shard, with a "
+            "short preview of each. Use this to discover what's available "
+            "before calling `recall`. Returns up to 10 most recent entries."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {},
         },
     },
     "share_with": {
@@ -134,6 +148,12 @@ async def _tool_remember(ctx: ToolContext, content: str, shard: str) -> dict[str
     key = f"mem:{shard}:{int(time.time())}:{uuid.uuid4().hex[:6]}"
     payload = json.dumps({"content": content, "shard": shard, "ts": int(time.time())})
     ok = await ctx.storage.put(key, payload)
+    # Side channel for list_shard to surface the most-recent real key without
+    # forcing the agent to remember it.
+    try:
+        ctx.storage._demo_last_key = key  # noqa: SLF001
+    except Exception:
+        pass
     ctx.on_event("storage_write", {"key": key, "shard": shard, "bytes": len(payload), "ok": ok})
     return {"stored": ok, "key": key, "shard": shard}
 
@@ -194,11 +214,62 @@ async def _tool_revoke(ctx: ToolContext, capability_token: str) -> dict[str, Any
     return {"revoked": True, "tx_hash": tx, "capability_token": capability_token}
 
 
+async def _tool_list_shard(ctx: ToolContext) -> dict[str, Any]:
+    """List recent keys in the agent's namespace, with brief previews.
+
+    Capability is verified once for the namespace; iteration then reads each
+    blob locally (already-decrypted via the iterator). Returns at most 10.
+    """
+    if ctx.capability_token:
+        try:
+            await ctx.capabilities.verify(
+                token=ctx.capability_token,
+                namespace=ctx.namespace,
+                key=ctx.namespace,
+                scope="read",
+            )
+            ctx.on_event("capability_verified", {"token": ctx.capability_token, "ok": True})
+        except SealedMindCapabilityError as exc:
+            ctx.on_event("capability_denied", {"token": ctx.capability_token, "error": str(exc)})
+            return {"error": f"access denied: {exc}", "shard": ctx.namespace}
+
+    items: list[dict[str, Any]] = []
+    try:
+        async for blinded, value in ctx.storage.iterate_all():
+            preview = value
+            try:
+                decoded = json.loads(value)
+                preview = decoded.get("content") or value
+            except json.JSONDecodeError:
+                pass
+            items.append({
+                "blinded_key": blinded[:32] + "...",
+                "preview": str(preview)[:140],
+            })
+            if len(items) >= 10:
+                break
+    except Exception as exc:
+        return {"error": f"iterate failed: {exc}", "shard": ctx.namespace}
+
+    # Also expose the most-recently-written REAL key so the agent can recall it.
+    # (We track this on the storage instance via a side channel.)
+    last_key = getattr(ctx.storage, "_demo_last_key", None)
+    if last_key:
+        items.insert(0, {
+            "key": last_key,
+            "note": "most recent storage key in this shard",
+        })
+
+    ctx.on_event("storage_read", {"key": f"<list:{ctx.namespace}>", "bytes": 0})
+    return {"shard": ctx.namespace, "items": items, "count": len(items)}
+
+
 TOOL_DISPATCH = {
     "remember":   _tool_remember,
     "recall":     _tool_recall,
     "share_with": _tool_share_with,
     "revoke":     _tool_revoke,
+    "list_shard": _tool_list_shard,
 }
 
 

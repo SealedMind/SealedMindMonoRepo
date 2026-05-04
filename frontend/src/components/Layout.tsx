@@ -31,6 +31,9 @@ export default function Layout({ children }: Props) {
             <Link to="/dashboard" className="hover:text-seal transition-colors">
               Dashboard
             </Link>
+            <Link to="/demo" className="hover:text-seal transition-colors">
+              Live Demo
+            </Link>
             <a href="https://github.com/SealedMind/SealedMindMonoRepo" target="_blank" rel="noreferrer" className="hover:text-seal transition-colors">
               Source
             </a>
