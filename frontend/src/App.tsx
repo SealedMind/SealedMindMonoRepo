@@ -7,6 +7,7 @@ import Sharing from "./pages/Sharing";
 import Demo from "./pages/Demo";
 import Pitch from "./pages/Pitch";
 import Developer from "./pages/Developer";
+import Docs from "./pages/Docs";
 
 export default function App() {
   return (
@@ -17,6 +18,7 @@ export default function App() {
         <Route path="/demo" element={<Demo />} />
         <Route path="/pitch" element={<Pitch />} />
         <Route path="/developer" element={<Developer />} />
+        <Route path="/docs" element={<Docs />} />
         <Route path="/mind/:id/chat" element={<Chat />} />
         <Route path="/mind/:id/sharing" element={<Sharing />} />
       </Routes>
