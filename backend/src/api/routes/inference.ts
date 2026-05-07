@@ -1,25 +1,32 @@
 import { Router, Request, Response } from "express";
 import type { InferenceService } from "../../services/inference.js";
+import { requireAuth } from "../middleware/auth.js";
+import { rateLimit } from "../middleware/rate_limit.js";
 
 /**
- * Generic TEE-attested chat endpoint.
+ * Generic TEE-attested chat endpoint — Qwen 2.5 7B in Intel TDX.
  *
  * POST /v1/inference/chat
- *   body: { messages: [{role, content}], maxTokens?, temperature? }
- *   resp: { content, chatId, attestationValid, model, attestationHash }
+ *   headers: Authorization: Bearer <sm_* api key | sm_op_* operator key | session>
+ *   body:    { messages: [{role, content}], maxTokens?, temperature? }
+ *   resp:    { content, model, chatId, attestationValid, enclave }
  *
- * No SIWE auth required — by design, this is meant to be a callable LLM
- * primitive for any external client (e.g. agent frameworks). For
- * production deployments, gate via API key or rate limit at the edge.
+ * Auth model:
+ *   * requireAuth — accepts SIWE session, user-scoped API key, OR an
+ *     operator key configured via SEALEDMIND_OPERATOR_KEYS. This stops
+ *     anonymous callers from draining the funded wallet's compute escrow.
+ *   * rateLimit — token bucket per-key: 30 requests / 60s by default.
  *
- * The model is Qwen 2.5 7B running inside Intel TDX. Every response is
- * accompanied by a TEE attestation chatId; clients can re-verify via
- * POST /v1/attestations/verify.
+ * The chatId can be re-verified via POST /v1/attestations/verify.
  */
 export function createInferenceRouter(inference: InferenceService) {
   const router = Router();
 
-  router.post("/chat", async (req: Request, res: Response) => {
+  router.post(
+    "/chat",
+    requireAuth,
+    rateLimit({ capacity: 30, refillPerSec: 0.5 }),
+    async (req: Request, res: Response) => {
     try {
       const { messages, maxTokens, temperature } = req.body ?? {};
       if (!Array.isArray(messages) || messages.length === 0) {
@@ -41,10 +48,11 @@ export function createInferenceRouter(inference: InferenceService) {
         attestationValid: result.attestationValid,
         enclave: "Intel TDX",
       });
-    } catch (err: any) {
-      res.status(500).json({ error: err?.message ?? String(err) });
+      } catch (err: any) {
+        res.status(500).json({ error: err?.message ?? String(err) });
+      }
     }
-  });
+  );
 
   return router;
 }

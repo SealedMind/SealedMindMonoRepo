@@ -31,6 +31,9 @@ export default function Layout({ children }: Props) {
             <Link to="/dashboard" className="hover:text-seal transition-colors">
               Dashboard
             </Link>
+            <Link to="/pitch" className="hover:text-seal transition-colors">
+              Pitch
+            </Link>
             <Link to="/demo" className="hover:text-seal transition-colors">
               Live Demo
             </Link>

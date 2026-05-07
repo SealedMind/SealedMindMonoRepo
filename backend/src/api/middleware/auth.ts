@@ -63,6 +63,32 @@ function saveApiKeys() {
 loadSessions();
 loadApiKeys();
 
+/**
+ * Operator API keys from env (`SEALEDMIND_OPERATOR_KEYS`, comma-separated
+ * `key:label` pairs). These are NOT tied to a wallet — they're for
+ * internal/headless clients (e.g. the SealedMind agent_server.py bridge,
+ * partner integrations). Operator keys still go through requireAuth and
+ * the per-key rate limiter; they just don't carry a walletAddress.
+ *
+ * Format: SEALEDMIND_OPERATOR_KEYS="sm_op_xxx:demo,sm_op_yyy:partner-a"
+ */
+const operatorKeys = new Map<string, string /* label */>();
+{
+  const raw = process.env.SEALEDMIND_OPERATOR_KEYS ?? "";
+  for (const pair of raw.split(",").map((p) => p.trim()).filter(Boolean)) {
+    const [k, ...rest] = pair.split(":");
+    if (k) operatorKeys.set(k.trim(), rest.join(":").trim() || "operator");
+  }
+}
+
+declare global {
+  namespace Express {
+    interface Request {
+      operatorLabel?: string;
+    }
+  }
+}
+
 // ── Public API ────────────────────────────────────────────────────────────────
 
 declare global {
@@ -115,6 +141,14 @@ export function requireAuth(req: Request, res: Response, next: NextFunction): vo
   const apiKeyEntry = apiKeys.get(token);
   if (apiKeyEntry) {
     req.walletAddress = apiKeyEntry.address;
+    next();
+    return;
+  }
+
+  // 1b. Operator key path (env-configured)
+  const opLabel = operatorKeys.get(token);
+  if (opLabel) {
+    req.operatorLabel = opLabel;
     next();
     return;
   }

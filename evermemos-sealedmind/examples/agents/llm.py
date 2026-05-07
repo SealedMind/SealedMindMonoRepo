@@ -119,12 +119,20 @@ class SealedInferenceBackend:
         self,
         *,
         base_url: str | None = None,
+        api_key: str | None = None,
         max_tokens: int = 512,
         timeout: float = 120.0,
     ) -> None:
         self._base = (base_url or os.environ.get(
             "SEALEDMIND_INFERENCE_BASE", self.DEFAULT_BASE
         )).rstrip("/")
+        self._api_key = api_key or os.environ.get("SEALEDMIND_INFERENCE_API_KEY")
+        if not self._api_key:
+            raise RuntimeError(
+                "SealedInferenceBackend requires an API key — set "
+                "SEALEDMIND_INFERENCE_API_KEY (operator key starts with sm_op_) "
+                "or pass api_key=..."
+            )
         self._max_tokens = max_tokens
         self._client = httpx.Client(timeout=timeout)
         self._last_chat_id = ""
@@ -203,11 +211,16 @@ class SealedInferenceBackend:
             "temperature": 0.3,
         }
         try:
-            resp = self._client.post(f"{self._base}/v1/inference/chat", json=body)
+            resp = self._client.post(
+                f"{self._base}/v1/inference/chat",
+                json=body,
+                headers={"Authorization": f"Bearer {self._api_key}"},
+            )
             resp.raise_for_status()
         except httpx.HTTPError as exc:
             raise RuntimeError(
-                f"sealed inference chat failed: {exc} — is /v1/inference/chat deployed?"
+                f"sealed inference chat failed: {exc} — endpoint deployed? "
+                "API key valid? rate limit?"
             ) from exc
 
         data = resp.json()
