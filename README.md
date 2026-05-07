@@ -8,7 +8,44 @@ SealedMind is the first portable memory layer for AI agents where:
 - **Ownership is cryptographic** — each Mind is an ERC-7857 iNFT on 0G Chain, transferable and user-controlled
 - **Isolation is guaranteed** — per-user encryption keys, per-user vector index, zero memory bleed between users
 
-Built for the 0G APAC Hackathon.
+Built for the 0G APAC Hackathon. Now shipping as a real product.
+
+---
+
+## ⚡ Live & hosted
+
+| Surface | URL |
+|---|---|
+| Live two-agent demo | https://sealedmind.vercel.app/demo |
+| Pitch (one-page product overview) | https://sealedmind.vercel.app/pitch |
+| Developer onboarding (get an API key) | https://sealedmind.vercel.app/developer |
+| Docs (integration paths + ABIs) | https://sealedmind.vercel.app/docs |
+| SealedMind backend API | https://sealedmind-backend-production.up.railway.app |
+| Hosted agent bridge (FastAPI + bundled zgs_kv) | https://sealedmindsdk-production.up.railway.app |
+
+## 📦 Published packages
+
+```bash
+npm  install @sealedmind/sdk          # TypeScript / JavaScript SDK
+pip  install sealedmind               # Python SDK (generic agent stacks)
+pip  install evermemos-sealedmind     # 0G Memory drop-in addon
+```
+
+| Package | Registry | Use case |
+|---|---|---|
+| [`@sealedmind/sdk`](https://www.npmjs.com/package/@sealedmind/sdk) | npm | Browser / Node — wraps the hosted backend |
+| [`sealedmind`](https://pypi.org/project/sealedmind/) | PyPI | Python — wraps the hosted backend |
+| [`evermemos-sealedmind`](https://pypi.org/project/evermemos-sealedmind/) | PyPI | Plugs into [`0gfoundation/0g-memory`](https://github.com/0gfoundation/0g-memory) as the encrypted memory layer |
+
+## 🔌 Three integration paths
+
+| Path | Best for | Effort |
+|---|---|---|
+| **A · 0G Memory addon** — `pip install evermemos-sealedmind` + 1 env var | Projects already on `0gfoundation/0g-memory` | 5 min |
+| **B · Hosted SDK** — `@sealedmind/sdk` or `sealedmind` (Python) | Any agent stack — LangGraph, smolagents, custom | 3 lines |
+| **C · Direct contracts** — call our `CapabilityRegistry` from any web3 lib | Your own backend, no deps on us | Permissionless |
+
+Full walkthrough on https://sealedmind.vercel.app/docs and in [`OVERVIEW.md`](./OVERVIEW.md).
 
 ---
 
@@ -107,19 +144,36 @@ sealedmind/
 │           ├── storage.ts             0G Storage upload/download
 │           ├── embeddings.ts          all-MiniLM-L6-v2 (384d)
 │           └── crypto.ts              AES-256-GCM
-├── sdk/                TypeScript SDK — SealedMind client
-├── cli/                CLI — login, remember, recall, grant
+├── sdk/                @sealedmind/sdk — TypeScript SDK (published on npm)
+├── python-sdk/         sealedmind — Python SDK (published on PyPI)
+├── evermemos-sealedmind/  0G Memory drop-in addon (published on PyPI)
+│   ├── evermemos_sealedmind/
+│   │   ├── kv_storage/    SealedMindKVStorage + UserAwareSealedMindKVStorage
+│   │   ├── auth/          WalletVault — encrypted user_secret_backup replacement
+│   │   ├── capabilities/  CapabilityClient (web3.py against CapabilityRegistry)
+│   │   ├── inference/     SealedInferenceClient (hosted Qwen-in-TDX)
+│   │   ├── crypto/        HKDF + AES-256-GCM envelope + HMAC key blinding
+│   │   └── components/    @component lifespan override for KV_STORAGE_TYPE=sealedmind
+│   ├── examples/
+│   │   ├── agent_server.py   FastAPI+WS bridge for the live demo
+│   │   ├── agent_demo.py     Cinematic terminal two-agent demo
+│   │   └── agents/           LangGraph MemoryAgent + LLM backends + tools + personas
+│   ├── Dockerfile + docker-entrypoint.sh   Hosts the bridge + bundled zgs_kv
+│   └── tests/             7 unit + 2 integration (gated by RUN_INTEGRATION=1)
+├── cli/                @sealedmind/cli — login, remember, recall, grant
 │   └── src/commands/
 │       ├── login.ts    SIWE auth from private key → ~/.sealedmind/config.json
 │       ├── remember.ts
 │       ├── recall.ts
 │       └── grant.ts
-├── frontend/           Vite + React + RainbowKit — Arctic Vault design
-└── openclaw-skill/     OpenClaw skill + Life OS agent
-    ├── SKILL.md        Skill definition
-    └── agent/
-        ├── life-os.md  Agent system prompt + configuration
-        └── demo.md     Judge demo script
+├── frontend/           Vite + React 19 + RainbowKit — Arctic Vault design
+│   └── src/pages/      Landing, Pitch, Developer, Demo, Docs, Dashboard, Chat, Sharing
+├── openclaw-skill/     OpenClaw skill + Life OS agent
+│   ├── SKILL.md        Skill definition
+│   └── agent/
+│       ├── life-os.md  Agent system prompt + configuration
+│       └── demo.md     Judge demo script
+└── OVERVIEW.md         Single share-this-link product doc
 ```
 
 ---
@@ -128,20 +182,25 @@ sealedmind/
 
 | Layer | Technology |
 |---|---|
-| Smart contracts | Solidity 0.8, Hardhat, ERC-7857 iNFT |
-| Chain | 0G Chain (EVM, chainId 16602) |
-| Decentralized storage | 0G Storage (`@0gfoundation/0g-ts-sdk`) |
+| Smart contracts | Solidity 0.8.24, Hardhat, ERC-7857 iNFT |
+| Chain | 0G Mainnet (16661) + Galileo Testnet (16602) |
+| Decentralized storage | 0G Storage (`@0gfoundation/0g-ts-sdk` Node, `zg-storage` Python) |
 | Sealed inference | 0G Sealed Inference (`@0glabs/0g-serving-broker`) |
 | LLM (inside TEE) | Qwen 2.5 7B Instruct |
 | Hardware enclave | Intel TDX + NVIDIA H100 |
 | Embeddings | all-MiniLM-L6-v2 via `@huggingface/transformers` (384d) |
 | Vector search | HNSW (`hnswlib-node`) |
-| Encryption | AES-256-GCM (`node:crypto`) |
-| Backend | Express, TypeScript, SIWE (`siwe`) |
-| Auth | SIWE session + long-lived API keys |
-| Frontend | Vite, React, TailwindCSS v4, RainbowKit, wagmi |
+| Encryption | AES-256-GCM (`node:crypto`, `cryptography`) |
+| Key derivation | HKDF-SHA256 + HMAC-SHA256 key blinding |
+| Backend | Express, TypeScript, SIWE (`siwe`) — hosted on Railway |
+| Auth | SIWE session + long-lived API keys + operator keys for headless integrations |
+| Frontend | Vite, React 19, TailwindCSS v4, RainbowKit, wagmi — hosted on Vercel |
+| Python addon | `evermemos-sealedmind` — plugs into 0G Memory's `memsys.addons` entry point |
+| Python SDK | `sealedmind` — async httpx wrapper over the backend |
+| Live demo agents | LangGraph state graph + Anthropic Claude (Aria) + Qwen 2.5 7B in TDX (Doctor) |
+| Agent bridge | FastAPI + WebSocket + bundled `zgs_kv` — Dockerized, hosted on Railway |
 | CLI | Commander.js, ethers v6 |
-| Agent | OpenClaw + Life OS agent |
+| Agent (showcase) | OpenClaw + Life OS agent |
 
 ---
 
@@ -524,6 +583,16 @@ GET    /v1/minds/:id/capabilities          List grants
 DELETE /v1/minds/:id/capabilities/:capId   Revoke
 GET    /v1/minds/:id/audit                 Access log
 ```
+
+### Inference (TEE-attested LLM, no Mind required)
+
+```
+POST /v1/inference/chat   { messages, maxTokens?, temperature? } → { content, model, chatId, attestationValid, enclave }
+```
+
+Auth: requires Bearer token (user API key OR operator key via
+`SEALEDMIND_OPERATOR_KEYS` env). Rate-limited: 30 req / 60s per key.
+Backend is Qwen 2.5 7B inside Intel TDX via the 0G Compute broker.
 
 ### Attestations
 
