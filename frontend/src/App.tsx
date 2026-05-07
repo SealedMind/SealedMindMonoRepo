@@ -6,6 +6,7 @@ import Chat from "./pages/Chat";
 import Sharing from "./pages/Sharing";
 import Demo from "./pages/Demo";
 import Pitch from "./pages/Pitch";
+import Developer from "./pages/Developer";
 
 export default function App() {
   return (
@@ -15,6 +16,7 @@ export default function App() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/demo" element={<Demo />} />
         <Route path="/pitch" element={<Pitch />} />
+        <Route path="/developer" element={<Developer />} />
         <Route path="/mind/:id/chat" element={<Chat />} />
         <Route path="/mind/:id/sharing" element={<Sharing />} />
       </Routes>
