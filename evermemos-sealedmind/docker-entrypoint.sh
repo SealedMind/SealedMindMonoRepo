@@ -11,15 +11,23 @@ set -euo pipefail
 
 KV_DIR=/opt/0g_kv_server
 CONFIG="$KV_DIR/config_testnet_turbo.toml"
+EXAMPLE="$KV_DIR/config_testnet_turbo.toml.example"
+
+if [ ! -f "$EXAMPLE" ]; then
+    echo "[entrypoint] FATAL: $EXAMPLE not found in image — Dockerfile broken" >&2
+    exit 3
+fi
 
 if [ -z "${ZEROG_STREAM_ID:-}" ]; then
     export ZEROG_STREAM_ID="$(openssl rand -hex 32)"
     echo "[entrypoint] generated ZEROG_STREAM_ID=$ZEROG_STREAM_ID"
+    echo "[entrypoint] WARN: copy this value into Railway env so it persists across restarts" >&2
 fi
 
 if [ -z "${SEALEDMIND_BACKUP_KEY:-}" ]; then
     export SEALEDMIND_BACKUP_KEY="$(openssl rand -hex 32)"
     echo "[entrypoint] generated SEALEDMIND_BACKUP_KEY=$SEALEDMIND_BACKUP_KEY"
+    echo "[entrypoint] WARN: copy this value into Railway env so it persists across restarts" >&2
 fi
 
 CURRENT_BLOCK="$(curl -s -X POST -H 'Content-Type: application/json' \

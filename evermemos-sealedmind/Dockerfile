@@ -39,6 +39,10 @@ RUN curl -L -o /tmp/zgs_kv.zip \
  && chmod +x /opt/0g_kv_server/zgs_kv \
  && rm /tmp/zgs_kv.zip
 
+# The kv-server config example (the v1.5.1 zip ships only the binary on
+# Linux, not the example config — bundle our own).
+COPY config_testnet_turbo.toml.example /opt/0g_kv_server/config_testnet_turbo.toml.example
+
 # Python package + bridge code
 WORKDIR /app
 COPY pyproject.toml ./
