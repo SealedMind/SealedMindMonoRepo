@@ -34,6 +34,8 @@ export default function AttestationCard({
 }: Props) {
   const [verifyState, setVerifyState] = useState<VerifyState>("idle");
   const [verifyMsg, setVerifyMsg] = useState<string | null>(null);
+  const [onChainTxHash, setOnChainTxHash] = useState<string | null>(null);
+  const [onChainExplorerUrl, setOnChainExplorerUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
   if (!chatId) return null;
@@ -51,7 +53,20 @@ export default function AttestationCard({
       const data = await r.json();
       if (data.verified) {
         setVerifyState("valid");
-        setVerifyMsg("On-chain re-verified · attestation chain intact");
+        const att = data.attestation ?? {};
+        // The MemoryAccessLog tx may still be in-flight when /verify
+        // returns. If so, the field is undefined and we just don't show
+        // the chainscan link this round — clicking Verify again later
+        // will pick it up once mined.
+        if (att.onChainTxHash && att.onChainExplorerUrl) {
+          setOnChainTxHash(att.onChainTxHash);
+          setOnChainExplorerUrl(att.onChainExplorerUrl);
+          setVerifyMsg("On-chain re-verified · MemoryAccessLog entry confirmed");
+        } else {
+          setOnChainTxHash(null);
+          setOnChainExplorerUrl(null);
+          setVerifyMsg("On-chain re-verified · attestation chain intact");
+        }
       } else {
         setVerifyState("invalid");
         setVerifyMsg(data.reason ?? "Attestation could not be re-verified");
@@ -105,6 +120,17 @@ export default function AttestationCard({
         >
           [{verifyButtonLabel}]
         </button>
+        {verifyState === "valid" && onChainTxHash && onChainExplorerUrl && (
+          <a
+            href={onChainExplorerUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="text-seal underline-offset-2 hover:underline"
+            title="On-chain MemoryAccessLog tx"
+          >
+            [tx ↗]
+          </a>
+        )}
       </div>
     );
   }
@@ -164,6 +190,19 @@ export default function AttestationCard({
         >
           → {verifyMsg}
         </div>
+      )}
+      {verifyState === "valid" && onChainTxHash && onChainExplorerUrl && (
+        <a
+          href={onChainExplorerUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="mt-3 inline-flex items-center gap-2 px-3 py-2 hairline-seal font-mono text-[10px] tracking-[0.18em] uppercase text-seal hover:bg-seal hover:text-white transition-colors"
+          title="Open on-chain MemoryAccessLog entry on chainscan"
+        >
+          <span className="inline-block w-1.5 h-1.5 rounded-full bg-seal anim-pulse-seal" />
+          On-chain proof · {onChainTxHash.slice(0, 10)}…{onChainTxHash.slice(-6)}
+          <span className="opacity-60">↗</span>
+        </a>
       )}
     </div>
   );
