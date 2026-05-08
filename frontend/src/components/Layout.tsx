@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import BackgroundField from "./BackgroundField";
 import MindSeal from "./MindSeal";
+import NetworkGuard from "./NetworkGuard";
 
 interface Props {
   children: React.ReactNode;
@@ -57,6 +58,8 @@ export default function Layout({ children }: Props) {
         {/* hairline */}
         <div className="h-px bg-gradient-to-r from-transparent via-vellum/10 to-transparent" />
       </header>
+
+      <NetworkGuard />
 
       <main className="relative z-10">{children}</main>
 

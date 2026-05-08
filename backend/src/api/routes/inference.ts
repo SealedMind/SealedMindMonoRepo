@@ -2,6 +2,7 @@ import { Router, Request, Response } from "express";
 import type { InferenceService } from "../../services/inference.js";
 import { requireAuth } from "../middleware/auth.js";
 import { rateLimit } from "../middleware/rate_limit.js";
+import { logAttestation } from "./attestations.js";
 
 /**
  * Generic TEE-attested chat endpoint — Qwen 2.5 7B in Intel TDX.
@@ -41,6 +42,16 @@ export function createInferenceRouter(inference: InferenceService) {
       }
 
       const result = await inference.chat(messages, { maxTokens, temperature });
+
+      // Record the chatId so /v1/attestations/verify can find it later.
+      // Without this, every "Verify Proof" click in the UI returns "not found".
+      // Caller-provided mindId is best-effort (operator keys don't have one).
+      const callerMindId = req.walletAddress ?? req.operatorLabel ?? "anon";
+      if (result.chatId) {
+        try { logAttestation(result.chatId, "chat", callerMindId, result.attestationValid); }
+        catch { /* recording is best-effort, don't break the response */ }
+      }
+
       res.json({
         content: result.content,
         model: result.model,

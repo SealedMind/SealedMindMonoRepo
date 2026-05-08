@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useAuth } from "../lib/auth";
-import AttestationBadge from "../components/AttestationBadge";
+import AttestationCard from "../components/AttestationCard";
 import CIDChip from "../components/CIDChip";
 import SealingProgress from "../components/SealingProgress";
 import MindSeal from "../components/MindSeal";
@@ -144,10 +144,23 @@ export default function Chat() {
               sealedmind ▸ {id} ▸ {mode}
             </span>
           </div>
-          <span className="font-mono text-[10px] tracking-[0.22em] uppercase text-seal flex items-center gap-2">
-            <span className="w-1.5 h-1.5 bg-seal rounded-full anim-pulse-seal" />
-            TEE live
-          </span>
+          <div className="flex items-center gap-4">
+            <RestoreFromZeroG mindId={id} client={client} onRestored={(c) => {
+              setTurns((t) => [
+                ...t,
+                {
+                  id: crypto.randomUUID(),
+                  role: "mind",
+                  content: `Restored ${c} memories from 0G testnet. Local cache repopulated; recall queries now hit the chain-derived state.`,
+                  mode: "recall",
+                },
+              ]);
+            }} />
+            <span className="font-mono text-[10px] tracking-[0.22em] uppercase text-seal flex items-center gap-2">
+              <span className="w-1.5 h-1.5 bg-seal rounded-full anim-pulse-seal" />
+              TEE live
+            </span>
+          </div>
         </div>
 
         {/* Transcript */}
@@ -198,10 +211,10 @@ export default function Chat() {
                   {(turn.attestation || turn.storageCIDs?.length || turn.retrieved !== undefined) && (
                     <div className="mt-5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                       {turn.attestation && (
-                        <AttestationBadge
-                          verified={turn.attestation.verified}
+                        <AttestationCard
                           chatId={turn.attestation.chatId}
                           enclave={turn.attestation.enclave}
+                          attestationValid={turn.attestation.verified}
                         />
                       )}
                       {turn.retrieved !== undefined && (
@@ -293,6 +306,62 @@ export default function Chat() {
           <div className="mt-1">0G Storage · AES-256-GCM</div>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────── Restore from 0G
+
+function RestoreFromZeroG({
+  mindId,
+  client,
+  onRestored,
+}: {
+  mindId: string;
+  client: any;
+  onRestored: (count: number) => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [done, setDone] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [tookMs, setTookMs] = useState<number | null>(null);
+
+  async function restore() {
+    setBusy(true);
+    setError(null);
+    const start = performance.now();
+    try {
+      // Re-fetch the Mind from chain → triggers backend to reload from 0G
+      // Storage if its in-memory cache was evicted
+      const data = await client.getMind(mindId);
+      const count = data?.mind?.records?.length ?? data?.mind?.memoryCount ?? 0;
+      const elapsed = Math.round(performance.now() - start);
+      setTookMs(elapsed);
+      setDone(true);
+      onRestored(count);
+      setTimeout(() => setDone(false), 4000);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="relative">
+      <button
+        onClick={restore}
+        disabled={busy}
+        className={`font-mono text-[10px] tracking-[0.22em] uppercase px-3 py-1 hairline-seal text-seal-deep hover:bg-seal hover:text-white transition-colors ${busy ? "opacity-60 cursor-not-allowed" : ""}`}
+        title="Wipe local cache and re-load all memories from 0G testnet"
+      >
+        {busy ? "Restoring…" : done ? `✓ ${tookMs}ms` : "↻ Restore from 0G"}
+      </button>
+      {error && (
+        <div className="absolute right-0 mt-1 px-2 py-1 hairline-rune font-mono text-[10px] text-crimson whitespace-nowrap">
+          {error}
+        </div>
+      )}
     </div>
   );
 }

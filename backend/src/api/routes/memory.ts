@@ -1,6 +1,7 @@
 import { Router, Request, Response } from "express";
 import { requireAuth } from "../middleware/auth.js";
 import { hasCapability } from "./capabilities.js";
+import { logAttestation } from "./attestations.js";
 import type { EngineRegistry } from "../../services/engineRegistry.js";
 
 const MAX_CONTENT_LENGTH = 10_000;
@@ -55,6 +56,12 @@ export function createMemoryRouter(registry: EngineRegistry) {
         },
         mindStats: { totalMemories: engine.memoryCount },
       });
+
+      // Record so /v1/attestations/verify can find this chatId later
+      if (result.attestation.chatId) {
+        try { logAttestation(result.attestation.chatId, "remember", mindId, result.attestation.attestationValid); }
+        catch { /* best-effort */ }
+      }
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }
@@ -102,6 +109,12 @@ export function createMemoryRouter(registry: EngineRegistry) {
           verified: result.attestation.attestationValid,
           enclave: "Intel TDX",
         };
+      }
+
+      // Record the recall chatId so verify endpoint can find it
+      if (result.attestation.chatId) {
+        try { logAttestation(result.attestation.chatId, "recall", mindId, result.attestation.attestationValid); }
+        catch { /* best-effort */ }
       }
 
       res.json(response);

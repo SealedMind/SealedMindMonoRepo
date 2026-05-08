@@ -8,6 +8,7 @@ import {
   type AgentEvent,
   type DemoState,
 } from "../lib/agentBridge";
+import AttestationCard from "../components/AttestationCard";
 
 type Speaker = "user" | "agent";
 type AgentSide = "patient" | "doctor";
@@ -285,7 +286,6 @@ function ChatPanel({
   placeholder: string;
 }) {
   const accent = tone === "seal" ? "text-seal" : "text-rune";
-  const accentBg = tone === "seal" ? "bg-seal" : "bg-rune";
   const hairline = tone === "seal" ? "hairline-seal" : "hairline-rune";
   const glow = tone === "seal" ? "glow-seal" : "glow-rune";
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -335,10 +335,13 @@ function ChatPanel({
                 {t.text}
               </div>
               {t.attestation && (
-                <div className={`mt-2 inline-flex items-center gap-2 px-2 py-1 ${hairline} font-mono text-[10px] ${accent}`}>
-                  <span className={`inline-block w-1.5 h-1.5 rounded-full ${accentBg}`} />
-                  TEE attested · {t.attestation.enclave}
-                  <span className="text-vellum-mute"> · {t.attestation.chatId?.slice(0, 8)}…</span>
+                <div className="mt-2">
+                  <AttestationCard
+                    chatId={t.attestation.chatId}
+                    enclave={t.attestation.enclave}
+                    attestationValid={t.attestation.valid}
+                    compact
+                  />
                 </div>
               )}
             </div>
