@@ -2,7 +2,7 @@ import { SealedMind } from "@sealedmind/sdk";
 
 /** Singleton SealedMind SDK client. */
 export const client = new SealedMind({
-  apiUrl: import.meta.env.VITE_API_URL || "",
+  apiUrl: "https://sealedmind-backend-production.up.railway.app",
 });
 
 const SESSION_KEY = "sealedmind:session";

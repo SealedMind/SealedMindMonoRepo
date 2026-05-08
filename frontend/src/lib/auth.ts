@@ -3,6 +3,8 @@ import { useAccount, useSignMessage } from "wagmi";
 import { SiweMessage } from "siwe";
 import { client, loadSession, saveSession, clearSession } from "./sealedmind";
 
+const API_BASE = "https://sealedmind-backend-production.up.railway.app";
+
 /**
  * useAuth — wires wagmi signing to SealedMind SIWE login.
  *
@@ -34,7 +36,7 @@ export function useAuth() {
     setError(null);
     try {
       // 1. Get nonce from API
-      const nonceRes = await fetch("/v1/auth/nonce");
+      const nonceRes = await fetch(`${API_BASE}/v1/auth/nonce`);
       const { nonce } = await nonceRes.json();
 
       // 2. Build SIWE message
@@ -53,7 +55,7 @@ export function useAuth() {
       const signature = await signMessageAsync({ message });
 
       // 4. POST to backend
-      const loginRes = await fetch("/v1/auth/login", {
+      const loginRes = await fetch(`${API_BASE}/v1/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message, signature }),

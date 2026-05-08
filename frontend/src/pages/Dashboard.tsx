@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { useAuth } from "../lib/auth";
 import MindSeal from "../components/MindSeal";
+import ShareModal from "../components/ShareModal";
 import type { Mind } from "@sealedmind/sdk";
 
 export default function Dashboard() {
@@ -137,7 +138,10 @@ export default function Dashboard() {
 }
 
 function MindCard({ mind, index }: { mind: Mind; index: number }) {
+  const { client } = useAuth();
   const id = mind.id || `mind-${index + 1}`;
+  const [shareOpen, setShareOpen] = useState(false);
+  const shards = (mind.shards && mind.shards.length > 0) ? mind.shards : ["general"];
   return (
     <div className="col-span-12 md:col-span-6 xl:col-span-4 group relative hairline bg-ink-2/40 grain p-8 transition-all duration-500 hover:hairline-seal hover:bg-ink-2/70">
       <div className="flex items-start justify-between mb-6">
@@ -189,13 +193,32 @@ function MindCard({ mind, index }: { mind: Mind; index: number }) {
         >
           Open ↗
         </Link>
-        <Link
-          to={`/mind/${id}/sharing`}
-          className="text-center font-mono text-[10px] tracking-[0.22em] uppercase py-3 border border-vellum/15 hover:border-rune hover:text-rune transition-colors"
+        <button
+          onClick={() => setShareOpen(true)}
+          className="text-center font-mono text-[10px] tracking-[0.22em] uppercase py-3 border border-vellum/15 hover:border-rune hover:text-rune transition-colors cursor-pointer"
         >
           Share ⬡
+        </button>
+      </div>
+
+      {/* Manage all link */}
+      <div className="mt-3 text-center">
+        <Link
+          to={`/mind/${id}/sharing`}
+          className="font-mono text-[9px] tracking-[0.22em] uppercase text-vellum-mute hover:text-vellum-dim transition-colors"
+        >
+          Manage all shares →
         </Link>
       </div>
+
+      {shareOpen && (
+        <ShareModal
+          mindId={id}
+          shards={shards}
+          client={client}
+          onClose={() => setShareOpen(false)}
+        />
+      )}
     </div>
   );
 }

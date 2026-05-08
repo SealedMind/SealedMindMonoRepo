@@ -8,6 +8,7 @@ import Demo from "./pages/Demo";
 import Pitch from "./pages/Pitch";
 import Developer from "./pages/Developer";
 import Docs from "./pages/Docs";
+import Access from "./pages/Access";
 
 export default function App() {
   return (
@@ -19,6 +20,7 @@ export default function App() {
         <Route path="/pitch" element={<Pitch />} />
         <Route path="/developer" element={<Developer />} />
         <Route path="/docs" element={<Docs />} />
+        <Route path="/access/:capId" element={<Access />} />
         <Route path="/mind/:id/chat" element={<Chat />} />
         <Route path="/mind/:id/sharing" element={<Sharing />} />
       </Routes>
