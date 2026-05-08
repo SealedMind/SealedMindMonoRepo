@@ -29,9 +29,12 @@ export function logAttestation(
   mindId: string,
   verified: boolean
 ): string {
-  const hash = `0x${Buffer.from(chatId).toString("hex").slice(0, 40)}`;
-  attestationStore.set(hash, {
-    hash,
+  // Store under the chatId itself as the canonical lookup key.
+  // (Earlier versions derived a separate "hash" from the chatId, which
+  // broke the verify endpoint because callers use the chatId returned
+  // from /v1/inference/chat as the lookup key.)
+  attestationStore.set(chatId, {
+    hash: chatId,
     chatId,
     verified,
     operation,
@@ -42,7 +45,7 @@ export function logAttestation(
       gpu: "NVIDIA H100 (TEE Mode)",
     },
   });
-  return hash;
+  return chatId;
 }
 
 export function createAttestationsRouter() {
