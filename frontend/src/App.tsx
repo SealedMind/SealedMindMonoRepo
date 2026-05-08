@@ -6,6 +6,7 @@ import Chat from "./pages/Chat";
 import Sharing from "./pages/Sharing";
 import Demo from "./pages/Demo";
 import Pitch from "./pages/Pitch";
+import Architecture from "./pages/Architecture";
 import Developer from "./pages/Developer";
 import Docs from "./pages/Docs";
 import Access from "./pages/Access";
@@ -18,6 +19,7 @@ export default function App() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/demo" element={<Demo />} />
         <Route path="/pitch" element={<Pitch />} />
+        <Route path="/architecture" element={<Architecture />} />
         <Route path="/developer" element={<Developer />} />
         <Route path="/docs" element={<Docs />} />
         <Route path="/access/:capId" element={<Access />} />
