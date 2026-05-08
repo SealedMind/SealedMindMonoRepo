@@ -5,6 +5,8 @@ import { embed, EMBEDDING_DIM } from "./embeddings.js";
 import { VectorIndex, type SearchResult } from "./vectorIndex.js";
 import { StorageService, type StorageConfig, type UploadResult } from "./storage.js";
 import { encrypt, decrypt, generateKey } from "./crypto.js";
+import { extractFastPath, shouldRunLLM } from "./memoryExtractor.js";
+import { detectConflicts } from "./conflictResolver.js";
 
 /**
  * SealedMind Memory Engine — orchestrates the full remember/recall flow.
@@ -21,6 +23,12 @@ export interface MemoryRecord {
   tags: string[];
   createdAt: number;       // unix ms
   storageCID: string;      // 0G Storage rootHash
+  /** Set true when a newer memory supersedes this one (recall filters it out). */
+  superseded?: boolean;
+  /** Timestamp the supersession happened (for audit/rollback). */
+  supersededAt?: number;
+  /** ID of the newer memory that replaced this one. */
+  supersededBy?: number;
 }
 
 export interface RememberResult {
@@ -31,6 +39,14 @@ export interface RememberResult {
   };
   storageCIDs: string[];
   txHashes: string[];
+  /** Diagnostics: how the facts were extracted + supersession bookkeeping. */
+  extraction: {
+    path: "fast" | "llm" | "skipped";
+    extractedCount: number;
+    storedCount: number;
+    skippedAsDuplicate: number;
+    supersededIds: number[];
+  };
 }
 
 export interface RecallResult {
@@ -111,25 +127,72 @@ export class MemoryEngine {
   /**
    * Remember: process raw text into structured, encrypted memories.
    *
-   * Flow: text → fact extraction (TEE) → embed → index → encrypt → 0G Storage
+   * Two-pass extraction:
+   *   Pass 1 (cheap): regex scan for explicit `[MEMORY: ...]` markers.
+   *   Pass 2 (TEE LLM): only if Pass 1 finds nothing AND the text looks
+   *                     substantial enough to warrant the cost.
+   *
+   * After extraction, each fact runs through the conflict resolver:
+   *   - Near-duplicates of existing memories are dropped (no store, no upload)
+   *   - Updates to existing facts (same subject, same category, different
+   *     wording) mark the old memory as superseded so future recalls skip it.
+   *
+   * Flow per stored fact: embed → conflict-check → encrypt → 0G Storage → index
    */
   async remember(
     content: string,
     shard: string = "general",
     type: "episodic" | "semantic" | "core" = "semantic"
   ): Promise<RememberResult> {
-    // 1. Extract facts inside TEE
-    const { facts, chatId, attestationValid } = await this.inference.extractFacts(content);
+    let facts: ExtractedFact[];
+    let chatId = "";
+    let attestationValid = false;
+    let path: "fast" | "llm" | "skipped" = "skipped";
+
+    // ── Pass 1 — fast-path regex scan ───────────────────────────────────
+    const fastFacts = extractFastPath(content);
+    if (fastFacts && fastFacts.length > 0) {
+      facts = fastFacts;
+      path = "fast";
+    } else if (shouldRunLLM(content)) {
+      // ── Pass 2 — fall back to TEE LLM extraction ─────────────────────
+      const r = await this.inference.extractFacts(content);
+      facts = r.facts;
+      chatId = r.chatId;
+      attestationValid = r.attestationValid;
+      path = "llm";
+    } else {
+      // Nothing to extract (greeting, ack, too short).
+      return {
+        memories: [],
+        attestation: { chatId: "", attestationValid: false },
+        storageCIDs: [],
+        txHashes: [],
+        extraction: { path: "skipped", extractedCount: 0, storedCount: 0, skippedAsDuplicate: 0, supersededIds: [] },
+      };
+    }
 
     const memories: MemoryRecord[] = [];
     const storageCIDs: string[] = [];
     const txHashes: string[] = [];
+    let skippedAsDuplicate = 0;
+    const supersededAcc: number[] = [];
+
+    // Snapshot of currently-active memories in this shard (for conflict check)
+    const activeInShard = Array.from(this.records.values()).filter(
+      (r) => r.shard === shard && !r.superseded
+    );
 
     for (const fact of facts) {
-      // 2. Generate embedding (local — TEE-ready when 0G adds embedding models)
-      const vector = await embed(fact.fact);
+      // ── Conflict resolution before we spend storage budget ─────────────
+      const conflict = await detectConflicts(fact.fact, fact.category, shard, activeInShard, this.index);
+      if (conflict.isNearDuplicate) {
+        skippedAsDuplicate++;
+        continue;
+      }
 
-      // 3. Build memory record
+      // Encrypt + store the new memory
+      const vector = await embed(fact.fact);
       const id = this.nextId++;
       const record: MemoryRecord = {
         id,
@@ -138,20 +201,27 @@ export class MemoryEngine {
         shard,
         tags: [fact.category],
         createdAt: Date.now(),
-        storageCID: "", // filled after upload
+        storageCID: "",
       };
-
-      // 4. Encrypt and upload to 0G Storage
-      const payload = JSON.stringify(record);
-      const { rootHash, txHash } = await this.storage.putEncrypted(payload, this.encryptionKey);
+      const { rootHash, txHash } = await this.storage.putEncrypted(JSON.stringify(record), this.encryptionKey);
       record.storageCID = rootHash;
 
-      // 5. Add to vector index
       this.index.add(id, vector);
       this.records.set(id, record);
       memories.push(record);
       storageCIDs.push(rootHash);
       txHashes.push(txHash);
+
+      // Mark old memories as superseded (non-destructive — they stay on chain)
+      for (const oldId of conflict.supersededIds) {
+        const old = this.records.get(oldId);
+        if (old && !old.superseded) {
+          old.superseded = true;
+          old.supersededAt = Date.now();
+          old.supersededBy = id;
+          supersededAcc.push(oldId);
+        }
+      }
     }
 
     this.saveState();
@@ -161,6 +231,13 @@ export class MemoryEngine {
       attestation: { chatId, attestationValid },
       storageCIDs,
       txHashes,
+      extraction: {
+        path,
+        extractedCount: facts.length,
+        storedCount: memories.length,
+        skippedAsDuplicate,
+        supersededIds: supersededAcc,
+      },
     };
   }
 
@@ -180,10 +257,11 @@ export class MemoryEngine {
     // 2. Search the vector index
     let results: SearchResult[] = this.index.search(queryVec, topK * 2);
 
-    // 3. Filter by shard if specified
+    // 3. Filter by shard + skip superseded entries
     let matchedRecords: MemoryRecord[] = results
       .map((r) => this.records.get(r.id))
       .filter((r): r is MemoryRecord => r !== undefined)
+      .filter((r) => !r.superseded)
       .filter((r) => !shard || r.shard === shard)
       .slice(0, topK);
 
