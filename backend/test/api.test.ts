@@ -51,8 +51,16 @@ const mockInference = {
   }),
 } as any;
 
+// Mock MemoryAccessLogService — never actually hits chain in tests.
+const mockMemoryAccessLog = {
+  contractAddress: "0xMockAccessLog",
+  explorerBase: "https://chainscan-galileo.0g.ai",
+  explorerTxUrl: (h: string) => `https://chainscan-galileo.0g.ai/tx/${h}`,
+  logAccess: vi.fn().mockResolvedValue(null), // soft-fail = null tx hash
+} as any;
+
 beforeAll(async () => {
-  app = createApp(mockRegistry, mockInference);
+  app = createApp(mockRegistry, mockInference, mockMemoryAccessLog);
 
   // Create a session directly for testing (bypasses SIWE signature verification)
   const { token } = await createSession(

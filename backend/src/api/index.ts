@@ -4,6 +4,7 @@ loadEnv({ path: "../.env" });
 import { createApp } from "./server.js";
 import { EngineRegistry } from "../services/engineRegistry.js";
 import { InferenceService } from "../services/inference.js";
+import { MemoryAccessLogService } from "../services/memoryAccessLog.js";
 
 const PORT = Number(process.env.PORT) || 4000;
 
@@ -42,7 +43,16 @@ async function main() {
   await inferenceService.init();
   console.log("✅ Inference broker ready");
 
-  const app = createApp(registry, inferenceService);
+  // On-chain audit trail — every memory operation logged to MemoryAccessLog.
+  // Async fire-and-forget per call. If the operator wallet runs out of 0G,
+  // logs gracefully degrade to in-memory only.
+  const memoryAccessLog = new MemoryAccessLogService({
+    rpcUrl: inferenceCfg.rpcUrl,
+    privateKey: inferenceCfg.privateKey,
+  });
+  console.log(`✅ MemoryAccessLog wired @ ${memoryAccessLog.contractAddress}`);
+
+  const app = createApp(registry, inferenceService, memoryAccessLog);
   app.listen(PORT, () => {
     console.log(`SealedMind API running on http://localhost:${PORT}`);
     console.log("Endpoints:");

@@ -12,13 +12,17 @@ interface AttestationRecord {
   hash: string;
   chatId: string;
   verified: boolean;
-  operation: string;       // "remember" | "recall"
+  operation: string;       // "remember" | "recall" | "chat"
   mindId: string;
   timestamp: string;
   teeEnvironment: {
     cpu: string;
     gpu: string;
   };
+  /** Set asynchronously when MemoryAccessLog.logAccess lands on chain. */
+  onChainTxHash?: string;
+  /** Convenience field — chainscan URL for the tx (set with onChainTxHash). */
+  onChainExplorerUrl?: string;
 }
 
 export const attestationStore: Map<string, AttestationRecord> = new Map();
@@ -46,6 +50,23 @@ export function logAttestation(
     },
   });
   return chatId;
+}
+
+/**
+ * Patch a previously-recorded attestation with the on-chain tx hash from
+ * MemoryAccessLog.logAccess once it lands. Idempotent — subsequent calls
+ * with the same chatId update the same record.
+ */
+export function patchAttestationWithOnChainTx(
+  chatId: string,
+  txHash: string,
+  explorerUrl: string,
+): void {
+  const att = attestationStore.get(chatId);
+  if (!att) return;
+  att.onChainTxHash = txHash;
+  att.onChainExplorerUrl = explorerUrl;
+  attestationStore.set(chatId, att);
 }
 
 export function createAttestationsRouter() {

@@ -2,7 +2,8 @@ import { Router, Request, Response } from "express";
 import type { InferenceService } from "../../services/inference.js";
 import { requireAuth } from "../middleware/auth.js";
 import { rateLimit } from "../middleware/rate_limit.js";
-import { logAttestation } from "./attestations.js";
+import { logAttestation, patchAttestationWithOnChainTx } from "./attestations.js";
+import { type MemoryAccessLogService, mindIdToUint } from "../../services/memoryAccessLog.js";
 
 /**
  * Generic TEE-attested chat endpoint — Qwen 2.5 7B in Intel TDX.
@@ -20,7 +21,10 @@ import { logAttestation } from "./attestations.js";
  *
  * The chatId can be re-verified via POST /v1/attestations/verify.
  */
-export function createInferenceRouter(inference: InferenceService) {
+export function createInferenceRouter(
+  inference: InferenceService,
+  memoryAccessLog: MemoryAccessLogService,
+) {
   const router = Router();
 
   router.post(
@@ -50,6 +54,24 @@ export function createInferenceRouter(inference: InferenceService) {
       if (result.chatId) {
         try { logAttestation(result.chatId, "chat", callerMindId, result.attestationValid); }
         catch { /* recording is best-effort, don't break the response */ }
+
+        // Background: log on-chain so /verify can return a chainscan link.
+        // Detached promise — the response is already on its way to the client.
+        memoryAccessLog
+          .logAccess({
+            mindIdNumeric: mindIdToUint(callerMindId),
+            operation: "chat",
+            chatId: result.chatId,
+          })
+          .then((txHash) => {
+            if (!txHash || !result.chatId) return;
+            patchAttestationWithOnChainTx(
+              result.chatId,
+              txHash,
+              memoryAccessLog.explorerTxUrl(txHash),
+            );
+          })
+          .catch(() => { /* already soft-failed inside service */ });
       }
 
       res.json({

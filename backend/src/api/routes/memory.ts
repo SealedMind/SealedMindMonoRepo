@@ -1,13 +1,44 @@
 import { Router, Request, Response } from "express";
 import { requireAuth } from "../middleware/auth.js";
 import { hasCapability } from "./capabilities.js";
-import { logAttestation } from "./attestations.js";
+import { logAttestation, patchAttestationWithOnChainTx } from "./attestations.js";
 import type { EngineRegistry } from "../../services/engineRegistry.js";
+import { type MemoryAccessLogService, mindIdToUint } from "../../services/memoryAccessLog.js";
 
 const MAX_CONTENT_LENGTH = 10_000;
 
-export function createMemoryRouter(registry: EngineRegistry) {
+export function createMemoryRouter(
+  registry: EngineRegistry,
+  memoryAccessLog: MemoryAccessLogService,
+) {
   const router = Router();
+
+  // Local helper — fire-and-forget on-chain log + patch the in-memory record
+  // when the tx hash arrives. Detached so the HTTP response returns first.
+  function logOnChain(
+    chatId: string | undefined,
+    operation: "remember" | "recall",
+    mindId: string,
+    storageCID?: string,
+  ) {
+    if (!chatId) return;
+    memoryAccessLog
+      .logAccess({
+        mindIdNumeric: mindIdToUint(mindId),
+        operation,
+        chatId,
+        storageCID,
+      })
+      .then((txHash) => {
+        if (!txHash) return;
+        patchAttestationWithOnChainTx(
+          chatId,
+          txHash,
+          memoryAccessLog.explorerTxUrl(txHash),
+        );
+      })
+      .catch(() => { /* already soft-failed inside service */ });
+  }
 
   /** POST /minds/:id/remember — seal a memory (owner only). */
   router.post("/:id/remember", requireAuth, async (req: Request, res: Response) => {
@@ -61,6 +92,12 @@ export function createMemoryRouter(registry: EngineRegistry) {
       if (result.attestation.chatId) {
         try { logAttestation(result.attestation.chatId, "remember", mindId, result.attestation.attestationValid); }
         catch { /* best-effort */ }
+
+        // Background — emit on-chain MemoryAccessLog entry. The first
+        // memory's storage CID gives us the canonical pointer for this
+        // remember batch (the rest are co-located on the same shard tx).
+        const firstCID = result.memories[0]?.storageCID;
+        logOnChain(result.attestation.chatId, "remember", mindId, firstCID);
       }
     } catch (err: any) {
       res.status(500).json({ error: err.message });
@@ -115,6 +152,9 @@ export function createMemoryRouter(registry: EngineRegistry) {
       if (result.attestation.chatId) {
         try { logAttestation(result.attestation.chatId, "recall", mindId, result.attestation.attestationValid); }
         catch { /* best-effort */ }
+
+        // Background — emit on-chain MemoryAccessLog entry for the recall.
+        logOnChain(result.attestation.chatId, "recall", mindId);
       }
 
       res.json(response);
