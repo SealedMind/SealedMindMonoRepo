@@ -12,11 +12,23 @@ Built for the 0G APAC Hackathon. Now shipping as a real product.
 
 ---
 
+## ✅ What's shipped, on-chain, today
+
+- **8 contracts deployed + source-verified** on 0G Mainnet (16661) AND Galileo Testnet (16602)
+- **Every `remember` / `recall` / `chat` emits an on-chain `MemoryAccessLog` tx** — immutable audit trail, chainscan-clickable from the Verify Proof button
+- **Hardware-attested LLM inference** — Qwen 2.5 7B in Intel TDX + NVIDIA H100, every reply returns a TEE attestation
+- **Three SDKs published** — `@sealedmind/sdk` (npm), `sealedmind` (PyPI), `evermemos-sealedmind` (PyPI, 0G Memory addon)
+- **Live two-agent capability demo** at sealedmind.vercel.app/demo — wallet sign-in, on-chain grant, instant revoke
+- **No admin keys, no trusted setup** — contracts are immutable; encryption keys derive from your wallet, never persisted
+
+---
+
 ## ⚡ Live & hosted
 
 | Surface | URL |
 |---|---|
 | Live two-agent demo | https://sealedmind.vercel.app/demo |
+| System architecture + threat model | https://sealedmind.vercel.app/architecture |
 | Pitch (one-page product overview) | https://sealedmind.vercel.app/pitch |
 | Developer onboarding (get an API key) | https://sealedmind.vercel.app/developer |
 | Docs (integration paths + ABIs) | https://sealedmind.vercel.app/docs |
@@ -217,7 +229,7 @@ sealedmind/
 
 Deployer: `0x21fc05b215FBDB9bfAdDc5EC12595E1154DE2302`
 
-### Testnet — 0G Newton Testnet (Chain ID: 16602)
+### Testnet — 0G Galileo Testnet (Chain ID: 16602)
 
 | Contract | Address | Explorer |
 |---|---|---|
@@ -270,10 +282,10 @@ NODE_ENV=development
 # node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 KEY_DERIVATION_SECRET=<your-64-char-hex>
 
-# Deployed contracts
-SEALED_MIND_NFT_ADDRESS=0x9f3918e3A2c9E98A3B1A8F3E2E49f91B3a67C5f8
+# Deployed contracts (0G Galileo Testnet — chainId 16602)
+SEALED_MIND_NFT_ADDRESS=0x741BbE3B2d19E1aE965467280Cc2a442F3632Ee7
 CAPABILITY_REGISTRY_ADDRESS=0xf6b33aDa9dd4998E71FA070C1618C8a52A44Ec66
-MEMORY_ACCESS_LOG_ADDRESS=0x4A7B9c2D1E8F3A6B5C9D2E7F1A4B8C3D6E9F2A5B
+MEMORY_ACCESS_LOG_ADDRESS=0xB085F48c98E8878ACA88460B37653cC8d2E24482
 ```
 
 Add 0G Testnet to MetaMask:
