@@ -185,7 +185,200 @@ export default function Demo() {
       {bridgeUp && state && (
         <EventFeed events={events} explorerBase={state.explorer_base} />
       )}
+
+      {/* Self-serve test guide for judges who land here directly */}
+      <TestYourselfPanel
+        doctorAddress={state?.doctor_address ?? "0x21fc05b215FBDB9bfAdDc5EC12595E1154DE2302"}
+        explorerBase={state?.explorer_base ?? "https://chainscan-galileo.0g.ai"}
+        capabilityRegistry={state?.capability_registry ?? "0xf6b33aDa9dd4998E71FA070C1618C8a52A44Ec66"}
+      />
     </div>
+  );
+}
+
+// ─────────────────────────────────────────────────── Test-yourself panel
+//
+// Appended below the live two-agent demo so judges who arrive directly
+// at /demo can walk through the full primitive themselves: connect a
+// wallet, mint a Mind, remember a fact, recall it, grant Dr. Chen
+// (the production-wired DOCTOR_ADDRESS), switch wallets, recall again,
+// revoke. Every step links to a real chainscan tx they can verify.
+
+function TestYourselfPanel({
+  doctorAddress, explorerBase, capabilityRegistry,
+}: { doctorAddress: string; explorerBase: string; capabilityRegistry: string }) {
+  const [copiedAddr, setCopiedAddr] = useState(false);
+
+  function copyAddr() {
+    navigator.clipboard.writeText(doctorAddress);
+    setCopiedAddr(true);
+    setTimeout(() => setCopiedAddr(false), 1400);
+  }
+
+  return (
+    <section className="mt-20 pt-12 border-t border-vellum/10">
+      <div className="eyebrow flex items-center gap-3">
+        <span className="inline-block w-8 h-px bg-seal" />
+        🧪 Test the live primitive yourself
+      </div>
+
+      <div className="mt-5 grid grid-cols-1 lg:grid-cols-[1fr,360px] gap-10 items-start">
+        <div>
+          <h2 className="font-display text-vellum text-[clamp(32px,3.6vw,52px)] leading-[0.95] tracking-[-0.025em] max-w-[820px]">
+            Drive the actual primitive in{" "}
+            <span className="font-display-italic text-seal-deep">six steps</span>.
+          </h2>
+          <p className="mt-5 text-vellum-dim text-[15px] leading-[1.6] max-w-[680px]">
+            Above, two agents walk through the capability flow on a hosted demo. Below is how
+            you run the same flow yourself — with your own wallet, your own memory, and the
+            production-wired doctor address as the grantee. Every step returns a clickable
+            chainscan transaction.
+          </p>
+        </div>
+
+        {/* Dr. Chen address card — pinned right, copyable */}
+        <aside className="hairline-seal p-5 bg-ink/70">
+          <div className="font-mono text-[10px] tracking-[0.22em] uppercase text-seal-deep">
+            🩺 Dr. Chen's wallet (grantee)
+          </div>
+          <p className="mt-2 text-vellum-dim text-[12px] leading-[1.55]">
+            The production-wired clinical AI grantee. Use this as the recipient when you call
+            grant in step 4.
+          </p>
+          <button
+            onClick={copyAddr}
+            className="mt-4 w-full text-left p-3 hairline bg-ink-2/70 hover:bg-ink-2 hover:hairline-seal transition-all group"
+            title="Click to copy"
+          >
+            <code className="block font-mono text-[11px] text-seal break-all leading-relaxed">
+              {doctorAddress}
+            </code>
+            <div className="mt-2 flex items-center justify-between font-mono text-[9px] tracking-[0.22em] uppercase">
+              <span className="text-vellum-mute">click to copy</span>
+              <span className={copiedAddr ? "text-seal" : "text-vellum-mute"}>
+                {copiedAddr ? "✓ copied" : "⧉ copy"}
+              </span>
+            </div>
+          </button>
+          <a
+            href={`${explorerBase}/address/${doctorAddress}`}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-3 block text-center font-mono text-[10px] tracking-[0.22em] uppercase text-seal-deep hover:text-seal underline-offset-2 hover:underline"
+          >
+            view on chainscan ↗
+          </a>
+        </aside>
+      </div>
+
+      {/* Six numbered steps */}
+      <ol className="mt-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <TestStep n="01" title="Connect your wallet">
+          <p>
+            Open <a href="/dashboard" className="text-seal-deep hover:text-seal underline-offset-2 hover:underline">Dashboard</a>,
+            click <strong>Connect Wallet</strong>, sign the SIWE message. Make sure MetaMask is on{" "}
+            <strong>0G Galileo testnet</strong> (chainId 16602, RPC{" "}
+            <code className="font-mono text-seal-deep">https://evmrpc-testnet.0g.ai</code>).
+            Need OG? <a href="https://hub.0g.ai/faucet" target="_blank" rel="noreferrer" className="text-seal-deep hover:text-seal underline-offset-2 hover:underline">Faucet ↗</a>
+          </p>
+        </TestStep>
+
+        <TestStep n="02" title="Mint your Mind">
+          <p>
+            Click <strong>Create Mind</strong> on the Dashboard. Sign the iNFT mint tx (ERC-7857). You now own a Mind whose ID is
+            your wallet address. The mint emits a <code className="font-mono text-seal-deep">Transfer</code> event on{" "}
+            <a href="https://chainscan-galileo.0g.ai/address/0x741BbE3B2d19E1aE965467280Cc2a442F3632Ee7" target="_blank" rel="noreferrer" className="text-seal-deep hover:text-seal underline-offset-2 hover:underline">SealedMindNFT</a>.
+          </p>
+        </TestStep>
+
+        <TestStep n="03" title="Remember a fact">
+          <p>
+            Open the <strong>Memory</strong> tab. Type something durable, e.g.{" "}
+            <em className="font-display-italic text-vellum">"I'm allergic to penicillin and shellfish."</em>{" "}
+            Pick the <code className="font-mono text-seal-deep">health</code> shard, click{" "}
+            <strong>Remember</strong>. The toast that pops contains the storage CID and a chainscan link to the on-chain log tx.
+          </p>
+        </TestStep>
+
+        <TestStep n="04" title="Grant Dr. Chen access">
+          <p>
+            Open the <strong>Sharing</strong> tab. Paste Dr. Chen's wallet address (from the card above ↑) as the{" "}
+            <strong>grantee</strong>, pick shard <code className="font-mono text-seal-deep">health</code>, set 30-day expiry,{" "}
+            <strong>read-only</strong>. Sign the on-chain grant tx — this hits{" "}
+            <a href={`${explorerBase}/address/${capabilityRegistry}`} target="_blank" rel="noreferrer" className="text-seal-deep hover:text-seal underline-offset-2 hover:underline">CapabilityRegistry</a>.
+          </p>
+        </TestStep>
+
+        <TestStep n="05" title="Recall &amp; verify the proof">
+          <p>
+            On the <strong>Recall</strong> tab, ask{" "}
+            <em className="font-display-italic text-vellum">"What are my allergies?"</em>{" "}
+            The reply comes back from Qwen 2.5 7B running inside Intel TDX. Click <strong>Verify Proof</strong> on the AttestationCard —{" "}
+            <strong className="text-seal-deep">a chainscan link to the on-chain MemoryAccessLog tx appears.</strong> Click it.
+          </p>
+        </TestStep>
+
+        <TestStep n="06" title="Switch wallets &amp; revoke">
+          <p>
+            <strong>Optional:</strong> switch MetaMask to a second wallet, hit <code className="font-mono text-seal-deep">/v1/minds/&lt;owner&gt;/recall</code> from any client, observe success. Switch back, click <strong>Revoke</strong> on the
+            capability — instant 403 for Dr. Chen on the next read. Permission via cryptography, not policy.
+          </p>
+        </TestStep>
+      </ol>
+
+      {/* Reference strip — chainscan + repo + SDK */}
+      <div className="mt-10 grid grid-cols-1 md:grid-cols-3 gap-4">
+        <RefCard
+          eyebrow="Chainscan"
+          label={`${explorerBase.replace("https://", "")}`}
+          href={explorerBase}
+          body="Verify every tx — mint, grant, log — on the public 0G explorer."
+        />
+        <RefCard
+          eyebrow="SDK · npm"
+          label="@sealedmind/sdk"
+          href="https://www.npmjs.com/package/@sealedmind/sdk"
+          body="Skip the UI — drive remember / recall / grant from your own code in 3 lines."
+        />
+        <RefCard
+          eyebrow="Source"
+          label="github.com/SealedMind/SealedMindMonoRepo"
+          href="https://github.com/SealedMind/SealedMindMonoRepo"
+          body="MIT-licensed monorepo. Contracts, SDKs, frontend, the agent demo above."
+        />
+      </div>
+    </section>
+  );
+}
+
+function TestStep({ n, title, children }: { n: string; title: string; children: React.ReactNode }) {
+  return (
+    <li className="hairline bg-ink/60 p-5 hover:hairline-seal transition-colors">
+      <div className="flex items-baseline gap-3">
+        <span className="font-display text-seal text-[28px] leading-none">{n}</span>
+        <h3 className="font-display text-vellum text-[18px] leading-[1.15] flex-1">{title}</h3>
+      </div>
+      <div className="mt-3 text-vellum-dim text-[13px] leading-[1.6]">
+        {children}
+      </div>
+    </li>
+  );
+}
+
+function RefCard({ eyebrow, label, href, body }: {
+  eyebrow: string; label: string; href: string; body: string;
+}) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      className="group hairline-seal p-4 bg-ink/60 hover:bg-ink-2 transition-all flex flex-col gap-2"
+    >
+      <div className="font-mono text-[10px] tracking-[0.22em] uppercase text-seal-deep">{eyebrow}</div>
+      <div className="font-mono text-[12px] text-vellum break-all group-hover:text-seal-deep">{label} ↗</div>
+      <div className="text-vellum-dim text-[12px] leading-[1.55]">{body}</div>
+    </a>
   );
 }
 
