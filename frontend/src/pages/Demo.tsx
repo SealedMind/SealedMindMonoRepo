@@ -186,13 +186,209 @@ export default function Demo() {
         <EventFeed events={events} explorerBase={state.explorer_base} />
       )}
 
-      {/* Self-serve test guide for judges who land here directly */}
+      {/* Scripted dialogue for the Aria × Dr. Chen demo above —
+          copy-paste prompts so judges can drive it themselves. */}
+      <ScriptedDemoPanel
+        doctorAddress={state?.doctor_address ?? "0x21fc05b215FBDB9bfAdDc5EC12595E1154DE2302"}
+      />
+
+      {/* Self-serve test guide for judges who want to run the
+          primitive with their own wallet, end-to-end. */}
       <TestYourselfPanel
         doctorAddress={state?.doctor_address ?? "0x21fc05b215FBDB9bfAdDc5EC12595E1154DE2302"}
         explorerBase={state?.explorer_base ?? "https://chainscan-galileo.0g.ai"}
         capabilityRegistry={state?.capability_registry ?? "0xf6b33aDa9dd4998E71FA070C1618C8a52A44Ec66"}
       />
     </div>
+  );
+}
+
+// ─────────────────────────────────────────────────── Scripted demo
+//
+// Five copy-paste prompts that walk a judge through the full Aria ×
+// Dr. Chen capability lifecycle in the panels above:
+//   1. Alice tells Aria something private (sealed to fitness shard)
+//   2. Dr. Chen asks — denied (no capability yet)
+//   3. Alice grants Dr. Chen 30-day read access (on-chain grant tx)
+//   4. Dr. Chen asks again — succeeds with TEE attestation
+//   5. Alice revokes (on-chain revoke tx) — next read fails
+// Each card shows: who, which input box, the prompt (copyable), what to expect.
+
+interface ScriptStep {
+  n: string;
+  who: "alice" | "doctor";
+  panel: "aria" | "doctor";
+  prompt: string;
+  outcome: string;
+  note?: string;
+}
+
+function buildScript(doctorAddress: string): ScriptStep[] {
+  return [
+    {
+      n: "01",
+      who: "alice",
+      panel: "aria",
+      prompt: "Just ran 8km in 45 min. New PB!",
+      outcome: "Aria seals the fact to Alice's fitness shard. Watch the event feed — storage CID + on-chain MemoryAccessLog tx appear.",
+    },
+    {
+      n: "02",
+      who: "doctor",
+      panel: "doctor",
+      prompt: "What's the patient's recent activity?",
+      outcome: "Denied — no capability yet. The on-chain hasCapability check returns false. Permission, not policy.",
+      note: "first read — should fail",
+    },
+    {
+      n: "03",
+      who: "alice",
+      panel: "aria",
+      // The wallet address must be in the prompt so Aria's tool call can populate
+      // CapabilityRegistry.grantCapability(grantee=...). The agent does not infer
+      // it from the persona name alone.
+      prompt: `Share my fitness data with Dr. Chen's clinical assistant for 30 days. His wallet address is ${doctorAddress}. Use the SealedMind capability flow.`,
+      outcome: "Aria fires grantCapability on the on-chain CapabilityRegistry with that grantee address. Watch the event feed for the cap tx hash — clickable on chainscan.",
+    },
+    {
+      n: "04",
+      who: "doctor",
+      panel: "doctor",
+      prompt: "What's the patient's recent activity?",
+      outcome: "Now succeeds. Qwen 2.5 7B inside Intel TDX recalls the fitness shard, summarises clinically, returns the answer with a TEE attestation chip.",
+      note: "second read — under capability",
+    },
+    {
+      n: "05",
+      who: "alice",
+      panel: "aria",
+      prompt: `Actually, revoke Dr. Chen's access. His wallet is ${doctorAddress}.`,
+      outcome: "One on-chain revokeCapability tx. Done. The next read attempt returns 403 instantly. Capability ended on chain.",
+    },
+  ];
+}
+
+function ScriptedDemoPanel({ doctorAddress }: { doctorAddress: string }) {
+  const script = buildScript(doctorAddress);
+  return (
+    <section className="mt-20 pt-12 border-t border-vellum/10">
+      <div className="eyebrow flex items-center gap-3">
+        <span className="inline-block w-8 h-px bg-seal" />
+        📜 Scripted demo · run the Aria × Dr. Chen flow yourself
+      </div>
+
+      <div className="mt-5 grid grid-cols-1 lg:grid-cols-[1fr,360px] gap-10 items-start">
+        <div>
+          <h2 className="font-display text-vellum text-[clamp(32px,3.6vw,52px)] leading-[0.95] tracking-[-0.025em] max-w-[820px]">
+            Five lines. The{" "}
+            <span className="font-display-italic text-seal-deep">full capability lifecycle</span>{" "}
+            on chain.
+          </h2>
+          <p className="mt-5 text-vellum-dim text-[15px] leading-[1.6] max-w-[680px]">
+            Copy each line into the chat panel it points at, in order. The agents above will
+            run the scripted flow live — sealed memory, denied access, on-chain grant, attested
+            recall, on-chain revoke. Every step emits a real transaction you can verify on
+            chainscan.
+          </p>
+        </div>
+
+        <aside className="hairline-seal p-5 bg-ink/70">
+          <div className="font-mono text-[10px] tracking-[0.22em] uppercase text-seal-deep">
+            🎬 How to use this
+          </div>
+          <ol className="mt-3 space-y-2.5 text-vellum-dim text-[12.5px] leading-[1.55] list-decimal list-inside">
+            <li>Click the prompt card to copy.</li>
+            <li>Paste into the indicated chat panel above (Aria or Dr. Chen).</li>
+            <li>Hit Send. Wait for the reply + watch the event feed.</li>
+            <li>Move to the next step.</li>
+          </ol>
+          <div className="mt-4 pt-3 border-t border-vellum/10 font-mono text-[10px] text-vellum-mute leading-[1.5]">
+            Total runtime: ~90s. Each TEE call takes 4-8s of attested compute.
+          </div>
+        </aside>
+      </div>
+
+      <ol className="mt-12 space-y-4">
+        {script.map((step) => (
+          <ScriptCard key={step.n} step={step} />
+        ))}
+      </ol>
+    </section>
+  );
+}
+
+function ScriptCard({ step }: { step: ScriptStep }) {
+  const [copied, setCopied] = useState(false);
+
+  function copy() {
+    navigator.clipboard.writeText(step.prompt);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1400);
+  }
+
+  const isAlice = step.who === "alice";
+  const tone = isAlice ? "seal" : "rune";
+  const speaker = isAlice ? "Alice → Aria" : "Dr. Chen → Aria's brain";
+  const target = isAlice
+    ? "Type into the LEFT panel (Aria)"
+    : "Type into the RIGHT panel (Dr. Chen's Assistant)";
+  const ring = tone === "seal" ? "hairline-seal" : "hairline-rune";
+  const accent = tone === "seal" ? "text-seal-deep" : "text-rune-deep";
+  const bgAccent = tone === "seal" ? "bg-seal/[0.03]" : "bg-rune/[0.03]";
+
+  return (
+    <li className={`${ring} ${bgAccent} p-5 grid grid-cols-[60px,1fr] md:grid-cols-[80px,1fr,300px] gap-5 items-start`}>
+      <div className="flex flex-col items-start">
+        <span className={`font-display ${accent} text-[40px] leading-none`}>{step.n}</span>
+        {step.note && (
+          <span className={`mt-2 font-mono text-[9px] tracking-[0.18em] uppercase ${accent} opacity-70`}>
+            {step.note}
+          </span>
+        )}
+      </div>
+
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+          <span className={`font-mono text-[10px] tracking-[0.22em] uppercase ${accent}`}>
+            {speaker}
+          </span>
+          <span className="font-mono text-[10px] tracking-[0.18em] uppercase text-vellum-mute">
+            · {target}
+          </span>
+        </div>
+
+        <button
+          onClick={copy}
+          className="mt-3 w-full text-left p-4 hairline bg-ink/80 hover:bg-ink-2/80 transition-all group flex items-start gap-3"
+          title="Click to copy"
+        >
+          <span className={`font-display-italic ${accent} text-[18px] leading-none mt-1`}>“</span>
+          <span className="flex-1 font-display text-vellum text-[15px] md:text-[16px] leading-[1.5] italic">
+            {step.prompt}
+          </span>
+          <span className="font-mono text-[9px] tracking-[0.22em] uppercase text-vellum-mute group-hover:text-seal flex-shrink-0 self-end">
+            {copied ? "✓ copied" : "⧉ copy"}
+          </span>
+        </button>
+      </div>
+
+      <div className="hidden md:block">
+        <div className="font-mono text-[9px] tracking-[0.22em] uppercase text-vellum-mute">
+          ↳ what happens
+        </div>
+        <p className="mt-2 text-vellum-dim text-[12.5px] leading-[1.55]">
+          {step.outcome}
+        </p>
+      </div>
+
+      {/* Mobile-only outcome (hidden on md+) */}
+      <div className="md:hidden col-start-2">
+        <div className="mt-3 pt-3 border-t border-vellum/10 font-mono text-[9px] tracking-[0.22em] uppercase text-vellum-mute">
+          ↳ what happens
+        </div>
+        <p className="mt-1.5 text-vellum-dim text-[12.5px] leading-[1.55]">{step.outcome}</p>
+      </div>
+    </li>
   );
 }
 
