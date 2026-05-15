@@ -952,10 +952,11 @@ function Slide09() {
     "8 contracts deployed + source-verified on 0G Mainnet (16661) AND Galileo Testnet (16602)",
     "MemoryAccessLog wired end-to-end — chainscan-clickable proof in verify response",
     "Hardware-attested LLM inference — Qwen 2.5 7B in Intel TDX + NVIDIA H100",
+    "★ EXTENDED 0G's OWN 0G MEMORY PROJECT — evermemos-sealedmind on PyPI is a drop-in addon for 0gfoundation/0g-memory. One pip install, one env var, encrypted memory + on-chain audit",
     "@sealedmind/sdk on npm — TypeScript, MIT, full typings",
-    "sealedmind on PyPI — async Python SDK",
-    "evermemos-sealedmind on PyPI — drop-in addon for 0gfoundation/0g-memory",
+    "sealedmind on PyPI — async Python SDK for any agent stack",
     "Live two-agent capability demo at sealedmind.vercel.app/demo",
+    "/developer self-serve onboarding — connect wallet → SIWE → API key in 30 seconds",
     "Live /architecture page with SVG diagram + threat model",
     "CLI (sealedmind login | remember | recall | grant) — scriptable workflows",
     "81 tests across 4 suites — contracts, SDK, backend, CLI",
@@ -973,21 +974,36 @@ function Slide09() {
         What's shipped · all on chain · all public
       </div>
       <h2 className="font-display fade-up-1 mt-6 text-vellum text-[clamp(48px,5.6vw,96px)] leading-[0.92] tracking-[-0.035em] max-w-[1100px]">
-        Ten things shipped.{" "}
+        Eleven things shipped.{" "}
         <span className="font-display-italic text-seal-deep">All auditable.</span>
       </h2>
 
       <div className="mt-10 grid grid-cols-12 gap-8">
         <ul className="col-span-12 lg:col-span-7 fade-up-2 grid grid-cols-1 gap-2">
-          {checklist.map((c, i) => (
-            <li key={c} className="grid grid-cols-[28px,1fr] gap-3 items-start text-vellum text-[13.5px] leading-[1.45]">
-              <span className="font-mono text-[10px] text-seal mt-1">{String(i + 1).padStart(2, "0")}</span>
-              <div className="flex gap-2">
-                <span className="text-seal mt-0.5">✓</span>
-                <span>{c}</span>
-              </div>
-            </li>
-          ))}
+          {checklist.map((c, i) => {
+            const featured = c.startsWith("★");
+            const text = featured ? c.replace(/^★\s*/, "") : c;
+            return (
+              <li
+                key={c}
+                className={`grid grid-cols-[28px,1fr] gap-3 items-start text-vellum leading-[1.5] ${
+                  featured
+                    ? "hairline-seal bg-seal/[0.04] p-3 my-1 text-[14px] -mx-2"
+                    : "text-[13.5px]"
+                }`}
+              >
+                <span className={`font-mono text-[10px] mt-1 ${featured ? "text-seal-deep font-bold" : "text-seal"}`}>
+                  {String(i + 1).padStart(2, "0")}
+                </span>
+                <div className="flex gap-2">
+                  <span className={`mt-0.5 ${featured ? "text-seal-deep" : "text-seal"}`}>
+                    {featured ? "★" : "✓"}
+                  </span>
+                  <span className={featured ? "font-medium" : ""}>{text}</span>
+                </div>
+              </li>
+            );
+          })}
         </ul>
 
         <div className="col-span-12 lg:col-span-5 fade-up-3">
@@ -1413,6 +1429,41 @@ function Slide13() {
               <div className="flex gap-3"><span className="text-seal mt-0.5">·</span><span>Attended <strong>every</strong> 0G builder meet — APAC track from day one</span></div>
               <div className="flex gap-3"><span className="text-seal mt-0.5">·</span><span>Coordinated with the 0G team across product + DevRel</span></div>
               <div className="flex gap-3"><span className="text-seal mt-0.5">·</span><span>Three-project ecosystem submission with two partner teams</span></div>
+            </div>
+          </div>
+        </article>
+
+        {/* FULL-WIDTH UPSTREAM CONTRIBUTION STRIP — extending 0G Memory itself */}
+        <article className="col-span-12 fade-up-5 border border-rune/40 p-6 bg-rune/[0.04]">
+          <div className="grid grid-cols-12 gap-6 items-center">
+            <div className="col-span-12 lg:col-span-4">
+              <div className="font-mono text-[10px] tracking-[0.22em] uppercase text-rune-deep">⬆ Upstream contribution to 0G itself</div>
+              <h3 className="font-display mt-2 text-vellum text-[26px] leading-[1.1]">
+                We <em className="font-display-italic text-rune-deep">extended</em> 0G's own 0G Memory project.
+              </h3>
+              <div className="mt-3 font-mono text-[11px] text-rune break-all">
+                0gfoundation/0g-memory
+              </div>
+            </div>
+            <div className="col-span-12 lg:col-span-8 grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3 text-vellum text-[13px] leading-[1.55]">
+              <div className="flex gap-3">
+                <span className="text-rune mt-0.5">·</span>
+                <span>
+                  <code className="font-mono text-rune-deep">evermemos-sealedmind</code> on PyPI is a <strong>drop-in addon</strong> for 0G Memory — not a fork
+                </span>
+              </div>
+              <div className="flex gap-3">
+                <span className="text-rune mt-0.5">·</span>
+                <span>Hooks into 0G Memory's official <code className="font-mono text-rune-deep">memsys.addons</code> entry point — sanctioned extension surface</span>
+              </div>
+              <div className="flex gap-3">
+                <span className="text-rune mt-0.5">·</span>
+                <span>One <code className="font-mono text-rune-deep">pip install</code>, one env var → encrypted memory + on-chain audit on top of any existing 0G Memory project</span>
+              </div>
+              <div className="flex gap-3">
+                <span className="text-rune mt-0.5">·</span>
+                <span><strong>A contributor to the 0G stack, not just a consumer of it.</strong> Top-of-funnel into every 0G Memory project</span>
+              </div>
             </div>
           </div>
         </article>

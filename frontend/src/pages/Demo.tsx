@@ -182,6 +182,18 @@ export default function Demo() {
         </div>
       )}
 
+      {/* Active capability panel — shows the FULL last_capability bytes32 +
+          a one-click "paste this revoke prompt" so users don't have to
+          parse Aria's truncated reply (e.g. "0xdb5273...977f1"). */}
+      {bridgeUp && state?.last_capability && (
+        <ActiveCapabilityPanel
+          capabilityId={state.last_capability}
+          explorerBase={state.explorer_base}
+          capabilityRegistry={state.capability_registry}
+          doctorAddress={state.doctor_address}
+        />
+      )}
+
       {bridgeUp && state && (
         <EventFeed events={events} explorerBase={state.explorer_base} />
       )}
@@ -200,6 +212,92 @@ export default function Demo() {
         capabilityRegistry={state?.capability_registry ?? "0xf6b33aDa9dd4998E71FA070C1618C8a52A44Ec66"}
       />
     </div>
+  );
+}
+
+// ─────────────────────────────────────────────────── Active capability panel
+//
+// Aria summarises grants in plain English ("Capability token: 0xdb52…977f1")
+// which truncates the full bytes32 — making it impossible to copy from her
+// reply for the subsequent revoke. This panel surfaces the FULL ID from
+// state.last_capability with a copy button, a chainscan link, and a
+// pre-filled "paste this to revoke" prompt that drops the token in for you.
+
+function ActiveCapabilityPanel({
+  capabilityId, explorerBase, capabilityRegistry, doctorAddress,
+}: {
+  capabilityId: string; explorerBase: string;
+  capabilityRegistry: string; doctorAddress: string;
+}) {
+  const [copiedId, setCopiedId] = useState(false);
+  const [copiedPrompt, setCopiedPrompt] = useState(false);
+
+  const revokePrompt = `Revoke Dr. Chen's access. His wallet is ${doctorAddress}. The capability token is ${capabilityId}.`;
+
+  function copyId() {
+    navigator.clipboard.writeText(capabilityId);
+    setCopiedId(true);
+    setTimeout(() => setCopiedId(false), 1400);
+  }
+  function copyPrompt() {
+    navigator.clipboard.writeText(revokePrompt);
+    setCopiedPrompt(true);
+    setTimeout(() => setCopiedPrompt(false), 1400);
+  }
+
+  return (
+    <section className="mt-8 hairline-seal bg-seal/[0.03] p-5">
+      <div className="grid grid-cols-1 lg:grid-cols-[auto,1fr] gap-5 items-start">
+        <div className="flex items-center gap-3">
+          <span className="inline-block w-2 h-2 rounded-full bg-seal anim-pulse-seal" />
+          <div className="font-mono text-[10px] tracking-[0.22em] uppercase text-seal-deep">
+            🔑 active capability · most recent grant
+          </div>
+        </div>
+        <a
+          href={`${explorerBase}/address/${capabilityRegistry}`}
+          target="_blank"
+          rel="noreferrer"
+          className="lg:justify-self-end font-mono text-[10px] tracking-[0.18em] uppercase text-vellum-mute hover:text-seal underline-offset-2 hover:underline"
+        >
+          CapabilityRegistry on chainscan ↗
+        </a>
+      </div>
+
+      {/* Full capability ID — copyable */}
+      <button
+        onClick={copyId}
+        className="mt-4 w-full text-left p-3 hairline bg-ink/80 hover:bg-ink-2/80 transition-all group flex items-center gap-3"
+        title="Click to copy the full capability ID"
+      >
+        <code className="flex-1 font-mono text-[12px] md:text-[13px] text-seal break-all leading-relaxed">
+          {capabilityId}
+        </code>
+        <span className={`flex-shrink-0 font-mono text-[10px] tracking-[0.22em] uppercase ${copiedId ? "text-seal" : "text-vellum-mute group-hover:text-seal"}`}>
+          {copiedId ? "✓ copied" : "⧉ copy"}
+        </span>
+      </button>
+
+      {/* Pre-filled revoke prompt — one click to copy, paste into Aria's box */}
+      <div className="mt-4 grid grid-cols-1 md:grid-cols-[auto,1fr] gap-4 items-start">
+        <div className="font-mono text-[10px] tracking-[0.22em] uppercase text-vellum-dim md:pt-2.5">
+          To revoke →
+        </div>
+        <button
+          onClick={copyPrompt}
+          className="text-left p-3 hairline bg-ink/80 hover:bg-ink-2/80 hover:hairline-seal transition-all group flex items-start gap-3"
+          title="Click to copy this revoke prompt — paste into Aria's chat"
+        >
+          <span className="font-display-italic text-seal-deep text-[15px] leading-none mt-0.5">“</span>
+          <span className="flex-1 font-display text-vellum text-[13.5px] leading-[1.55] italic">
+            {revokePrompt}
+          </span>
+          <span className={`flex-shrink-0 font-mono text-[9px] tracking-[0.22em] uppercase ${copiedPrompt ? "text-seal" : "text-vellum-mute group-hover:text-seal"}`}>
+            {copiedPrompt ? "✓ copied" : "⧉ copy prompt"}
+          </span>
+        </button>
+      </div>
+    </section>
   );
 }
 
