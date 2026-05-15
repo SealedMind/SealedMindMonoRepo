@@ -10,8 +10,22 @@ import Architecture from "./pages/Architecture";
 import Developer from "./pages/Developer";
 import Docs from "./pages/Docs";
 import Access from "./pages/Access";
+import Deck from "./pages/Deck";
 
 export default function App() {
+  return (
+    <Routes>
+      {/* /deck is intentionally rendered BARE — no Layout chrome.
+          Full-viewport presentation surface for screen recording. */}
+      <Route path="/deck" element={<Deck />} />
+
+      {/* Everything else gets the standard Layout (header / footer / nav). */}
+      <Route path="*" element={<MainApp />} />
+    </Routes>
+  );
+}
+
+function MainApp() {
   return (
     <Layout>
       <Routes>
