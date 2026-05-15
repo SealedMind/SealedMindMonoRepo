@@ -85,6 +85,9 @@ export default function Demo() {
         ...t,
         { id: tid + "-a", side: "patient", speaker: "agent", text: r.reply, ts: Date.now() },
       ]);
+      // Refresh state so the ActiveCapabilityPanel + brain labels reflect any
+      // new last_capability / last_storage_key the backend just produced.
+      try { setState(await getState()); } catch { /* non-fatal */ }
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -123,6 +126,9 @@ export default function Demo() {
           attestation: att,
         },
       ]);
+      // Refresh state — Dr. Chen's reads can also mutate last_capability /
+      // last_storage_key on the backend (e.g. when a recall fires).
+      try { setState(await getState()); } catch { /* non-fatal */ }
     } catch (e) {
       setError((e as Error).message);
     } finally {
