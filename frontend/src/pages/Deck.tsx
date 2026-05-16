@@ -1218,99 +1218,71 @@ function Slide12() {
         Business model · path to $1M ARR
       </div>
       <h2 className="font-display fade-up-1 mt-6 text-vellum text-[clamp(44px,5vw,84px)] leading-[0.92] tracking-[-0.035em] max-w-[1200px]">
-        Four streams. <span className="font-display-italic text-seal-deep">Hosted infra ready for billing.</span>
+        Two streams. <span className="font-display-italic text-seal-deep">Hosted infra ready for billing.</span>
       </h2>
 
-      <div className="mt-10 grid grid-cols-12 gap-5">
+      <div className="mt-12 grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Stream 1 — Metered API */}
-        <div className="col-span-12 lg:col-span-3 fade-up-2 hairline-seal p-5 bg-ink/60">
-          <div className="font-mono text-[10px] tracking-[0.22em] uppercase text-seal-deep">01 · stream</div>
-          <h3 className="font-display mt-2 text-vellum text-[24px] leading-[1.1]">Metered API</h3>
-          <p className="font-display-italic mt-2 text-vellum-dim text-[13px]">Stripe Metered Billing</p>
-          <ul className="mt-4 space-y-2 text-vellum text-[13px] leading-[1.5] font-mono">
-            <li>$0.003 / remember</li>
-            <li>$0.005 / recall</li>
-            <li>$0.004 / inference</li>
-          </ul>
-          <p className="mt-4 text-vellum-dim text-[12.5px] leading-[1.5]">60-70% gross margin at scale.</p>
-        </div>
+        <article className="fade-up-2 hairline-seal p-8 bg-ink/60 flex flex-col">
+          <div className="font-mono text-[11px] tracking-[0.22em] uppercase text-seal-deep">01 · stream</div>
+          <h3 className="font-display mt-3 text-vellum text-[40px] leading-[1.05]">Metered API</h3>
+          <p className="font-display-italic mt-2 text-vellum-dim text-[16px]">Stripe Metered Billing</p>
 
-        {/* Stream 2 — Subscriptions table */}
-        <div className="col-span-12 lg:col-span-5 fade-up-3 hairline p-5 bg-ink/60">
-          <div className="font-mono text-[10px] tracking-[0.22em] uppercase text-seal-deep">02 · stream</div>
-          <h3 className="font-display mt-2 text-vellum text-[24px] leading-[1.1]">Subscriptions</h3>
-          <table className="mt-4 w-full border-collapse text-[13px]">
+          <ul className="mt-7 space-y-3 font-mono text-[16px] text-vellum leading-[1.5]">
+            <li className="flex items-baseline justify-between border-b border-vellum/5 pb-2">
+              <span>remember</span>
+              <span className="text-seal-deep">$0.003</span>
+            </li>
+            <li className="flex items-baseline justify-between border-b border-vellum/5 pb-2">
+              <span>recall</span>
+              <span className="text-seal-deep">$0.005</span>
+            </li>
+            <li className="flex items-baseline justify-between border-b border-vellum/5 pb-2">
+              <span>inference</span>
+              <span className="text-seal-deep">$0.004</span>
+            </li>
+          </ul>
+
+          <div className="mt-auto pt-8">
+            <div className="font-mono text-[10px] tracking-[0.22em] uppercase text-vellum-mute">gross margin</div>
+            <div className="font-display text-vellum text-[44px] leading-none mt-1">60-70%</div>
+            <p className="mt-3 text-vellum-dim text-[13.5px] leading-[1.55]">
+              Pay-as-you-go for builders. Scales naturally with usage, no upfront commitment, no flat fee anxiety.
+            </p>
+          </div>
+        </article>
+
+        {/* Stream 2 — Subscriptions */}
+        <article className="fade-up-3 hairline p-8 bg-ink/60 flex flex-col">
+          <div className="font-mono text-[11px] tracking-[0.22em] uppercase text-seal-deep">02 · stream</div>
+          <h3 className="font-display mt-3 text-vellum text-[40px] leading-[1.05]">Subscriptions</h3>
+          <p className="font-display-italic mt-2 text-vellum-dim text-[16px]">Predictable revenue · clean segmentation</p>
+
+          <table className="mt-7 w-full border-collapse text-[14px]">
             <thead>
               <tr className="text-left font-mono text-[10px] tracking-[0.18em] uppercase text-vellum-mute">
-                <th className="pb-2 pr-2">Plan</th>
-                <th className="pb-2 pr-2">/mo</th>
-                <th className="pb-2 pr-2">Included</th>
-                <th className="pb-2">Target</th>
+                <th className="pb-3 pr-3">Plan</th>
+                <th className="pb-3 pr-3">/mo</th>
+                <th className="pb-3 pr-3">Included</th>
+                <th className="pb-3">Target</th>
               </tr>
             </thead>
             <tbody>
               {plans.map((p) => (
                 <tr key={p.name} className="border-t border-vellum/5">
-                  <td className="py-2 pr-2 font-display text-vellum">{p.name}</td>
-                  <td className="py-2 pr-2 font-mono text-seal-deep">{p.price}</td>
-                  <td className="py-2 pr-2 font-mono text-[11.5px] text-vellum-dim">{p.incl}</td>
-                  <td className="py-2 text-vellum-dim text-[12px]">{p.target}</td>
+                  <td className="py-3 pr-3 font-display text-vellum text-[16px]">{p.name}</td>
+                  <td className="py-3 pr-3 font-mono text-seal-deep text-[14px]">{p.price}</td>
+                  <td className="py-3 pr-3 font-mono text-[11.5px] text-vellum-dim">{p.incl}</td>
+                  <td className="py-3 text-vellum-dim text-[12.5px]">{p.target}</td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </div>
 
-        {/* Stream 3 — Compliance Premium */}
-        <div className="col-span-12 lg:col-span-4 fade-up-3 border border-ember/40 p-5 bg-ember/[0.04]">
-          <div className="font-mono text-[10px] tracking-[0.22em] uppercase text-ember">03 · highest margin</div>
-          <h3 className="font-display mt-2 text-vellum text-[24px] leading-[1.1]">Compliance Premium</h3>
-          <p className="font-display-italic mt-2 text-vellum-dim text-[13px]">The competitive moat</p>
-          <ul className="mt-4 space-y-2 text-vellum text-[13px] leading-[1.5]">
-            <li>· Attestation Certificate Export</li>
-            <li>· Audit Log Export (SOC 2 / HIPAA)</li>
-            <li>· HIPAA BAA — Enterprise-only</li>
-            <li>· Capability Audit Reports</li>
-          </ul>
-        </div>
-
-        {/* Stream 4 — Self-host */}
-        <div className="col-span-12 lg:col-span-5 fade-up-4 hairline-rune p-5 bg-ink/60">
-          <div className="font-mono text-[10px] tracking-[0.22em] uppercase text-rune-deep">04 · enterprise</div>
-          <h3 className="font-display mt-2 text-vellum text-[24px] leading-[1.1]">Self-Host License</h3>
-          <table className="mt-4 w-full border-collapse text-[13px]">
-            <tbody>
-              {[["Standard", "$25k/yr", "Email · 5d SLA"],
-                ["Premium", "$75k/yr", "Slack · 1d SLA · QBRs"],
-                ["Enterprise", "$150k+/yr", "Dedicated engineer · custom"]].map(([t, p, s]) => (
-                <tr key={t} className="border-t border-vellum/5">
-                  <td className="py-2 pr-3 font-display text-vellum">{t}</td>
-                  <td className="py-2 pr-3 font-mono text-rune-deep">{p}</td>
-                  <td className="py-2 text-vellum-dim text-[12px]">{s}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Unit economics */}
-        <div className="col-span-12 lg:col-span-7 fade-up-4 hairline p-5 bg-ink/60">
-          <div className="font-mono text-[10px] tracking-[0.22em] uppercase text-seal-deep">Unit economics · LTV / CAC</div>
-          <div className="mt-4 grid grid-cols-3 gap-4">
-            {[["Developer inbound", "$2,680", "$200", "13×"],
-              ["Compliance", "$36k", "$3.5k", "10×"],
-              ["Self-host enterprise", "$150k", "$20k", "7.5×"]].map(([seg, ltv, cac, ratio]) => (
-              <div key={seg} className="hairline-seal p-3">
-                <div className="font-mono text-[10px] tracking-[0.22em] uppercase text-vellum-dim">{seg}</div>
-                <div className="mt-2 grid grid-cols-3 items-baseline gap-2">
-                  <div><div className="font-mono text-[10px] text-vellum-mute">LTV</div><div className="font-display text-vellum text-[18px]">{ltv}</div></div>
-                  <div><div className="font-mono text-[10px] text-vellum-mute">CAC</div><div className="font-display text-vellum text-[18px]">{cac}</div></div>
-                  <div><div className="font-mono text-[10px] text-vellum-mute">ratio</div><div className="font-display text-seal-deep text-[22px]">{ratio}</div></div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+          <p className="mt-auto pt-8 text-vellum-dim text-[13.5px] leading-[1.55]">
+            Included quotas drawn from the same metered backend. Overages flow back to metered rates above.
+          </p>
+        </article>
       </div>
     </Frame>
   );
@@ -1638,7 +1610,7 @@ const SLIDES: Array<{ label: string; title: string; Component: () => React.React
   { label: "Shipped",       title: "Ten things shipped. All on chain.",                         Component: Slide09 },
   { label: "Use cases",     title: "Six verticals where 'memory you own' isn't optional.",      Component: Slide10 },
   { label: "Collab",        title: "Three projects. One stack.",                                Component: Slide11 },
-  { label: "Business",      title: "Four revenue streams. Path to $1M ARR.",                    Component: Slide12 },
+  { label: "Business",      title: "Two revenue streams. Hosted infra ready for billing.",      Component: Slide12 },
   { label: "Traction",      title: "Live · on-chain · being composed on.",                      Component: Slide13 },
   { label: "Roadmap",       title: "From primitive to platform.",                               Component: Slide14 },
   { label: "Closing",       title: "The memory primitive for the agentic internet.",            Component: Slide15 },
