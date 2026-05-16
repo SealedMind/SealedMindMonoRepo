@@ -1447,34 +1447,74 @@ function Slide13() {
 // ── 14 · ROADMAP ────────────────────────────────────────────────
 function Slide14() {
   const phases = [
-    { p: "Phase 1", w: "weeks 1-4", g: "Enable billing", target: "$500-2k MRR",
-      bullets: ["Stripe Metered Billing wired to sm_* keys", "Hobby/Builder/Team plan pages", "Usage tracking middleware", "Hard rate limits to force upgrade"] },
-    { p: "Phase 2", w: "months 2-4", g: "Developer growth", target: "$5-15k MRR · 100+ devs",
-      bullets: ["Promotion of 3 SDKs in 0G ecosystem", "LangGraph / smolagents / OpenClaw guides", "Embeddable two-agent demo", "Discord communities"] },
-    { p: "Phase 3", w: "months 3-6", g: "Compliance pipeline", target: "$20-50k MRR · 5-10 customers",
-      bullets: ["First 3 enterprise pilots", "AI startups in healthcare/finance/legal", "HIPAA BAA template drafted", "SOC 2 Type I audit started"] },
-    { p: "Phase 4", w: "months 6-12", g: "Enterprise self-host", target: "$75-150k ARR · 1st license",
-      bullets: ["Dockerfile + Helm chart", "Onboarding playbook", "1-2 healthcare/finance pilots", "Self-host standard contracts"] },
+    {
+      g: "Ship the on-ramp",
+      w: "month 1",
+      bullets: [
+        "Polish the /developer onboarding — wallet, SIWE, API key in 30s",
+        "Usage dashboard inside /dashboard — live quota + chainscan trail",
+        "Onboarding email + Discord drip for every new sign-up",
+        "Open the SealedMind public roadmap + RFC repo",
+      ],
+    },
+    {
+      g: "Spread across agent frameworks",
+      w: "months 1-2",
+      bullets: [
+        "Drop-in integration guides for LangGraph, smolagents, AutoGen, CrewAI, Mastra",
+        "AI SDK + Vercel partner template — one-click SealedMind memory",
+        "Embeddable two-agent demo widget for partner sites",
+        "Recruit 5+ more 0G builders to ship on the primitive",
+      ],
+    },
+    {
+      g: "Verticalise the playbook",
+      w: "months 2-4",
+      bullets: [
+        "Healthcare starter kit — health shard schema + audit-log export tool",
+        "Finance starter kit — capability templates + multi-agent delegation guide",
+        "Whitepaper: TEE-attested memory in regulated AI workloads",
+        "Two reference customers per vertical, case studies published",
+      ],
+    },
+    {
+      g: "Decentralise + harden",
+      w: "months 4-6",
+      bullets: [
+        "Migrate live demo + production traffic to 0G mainnet (from Galileo)",
+        "Multisig the operator wallet — remove single-key risk",
+        "Ship v0.2: threshold re-encryption for iNFT transfer (unlocks Daimon SALE)",
+        "Open-source the contract ABI types as a published npm package",
+      ],
+    },
   ];
-  const months = [
-    { m: "M3", v: "$5k" },
-    { m: "M6", v: "$16k" },
-    { m: "M9", v: "$27k" },
-    { m: "M12", v: "$43k" },
+
+  // North-star growth metrics — no dollars, just product/community KPIs.
+  const northStars = [
+    { k: "Developer wallets with API keys", aim: "1,000+" },
+    { k: "Memories sealed on chain", aim: "100k+" },
+    { k: "Live partner integrations", aim: "10+" },
+    { k: "Contributing 0G Memory installs", aim: "first 25" },
   ];
+
   return (
     <Frame align="center">
       <div className="eyebrow fade-up flex items-center gap-3">
         <span className="inline-block w-8 h-px bg-seal" />
-        Roadmap · 12-month plan
+        Roadmap · next 6 months
       </div>
       <h2 className="font-display fade-up-1 mt-6 text-vellum text-[clamp(44px,5vw,84px)] leading-[0.92] tracking-[-0.035em]">
-        From primitive to platform.
+        From primitive to <span className="font-display-italic text-seal-deep">platform.</span>
       </h2>
+      <p className="fade-up-2 mt-5 text-vellum-dim text-[15px] leading-[1.6] max-w-[780px]">
+        Four growth bets across the next two quarters. Each one widens the surface area —
+        more agents, more verticals, more on-chain footprint — without changing what makes
+        SealedMind the primitive that judges saw today.
+      </p>
 
       <div className="mt-10 grid grid-cols-4 gap-4">
         {phases.map((ph, i) => (
-          <article key={ph.p} className={`fade-up-${i + 2} hairline bg-ink/60 p-5 flex flex-col`}>
+          <article key={ph.g} className={`fade-up-${i + 2} hairline bg-ink/60 p-5 flex flex-col`}>
             <div className="flex items-baseline justify-between">
               <span className="font-display text-seal text-[32px] leading-none">{i + 1}</span>
               <span className="font-mono text-[10px] tracking-[0.22em] uppercase text-vellum-mute">{ph.w}</span>
@@ -1485,28 +1525,31 @@ function Slide14() {
                 <li key={b} className="flex gap-2"><span className="text-seal mt-0.5">·</span><span>{b}</span></li>
               ))}
             </ul>
-            <div className="mt-4 pt-3 border-t border-vellum/5 font-mono text-[11.5px] text-seal-deep">↳ {ph.target}</div>
           </article>
         ))}
       </div>
 
-      {/* MRR ramp */}
-      <div className="fade-up-5 mt-10 hairline-seal p-5 bg-ink/60 grid grid-cols-12 items-center gap-6">
-        <div className="col-span-3">
-          <div className="font-mono text-[9px] tracking-[0.22em] uppercase text-seal-deep">Year-1 MRR ramp</div>
-          <div className="font-display text-vellum text-[40px] leading-none mt-2">$516k <span className="text-vellum-dim text-[20px]">ARR</span></div>
-          <div className="font-display-italic text-vellum-dim text-[13px] mt-1">conservative scenario</div>
-        </div>
-        <div className="col-span-9 grid grid-cols-4 gap-4">
-          {months.map((m, i) => (
-            <div key={m.m} className="flex flex-col items-end gap-1">
-              <div className="w-full bg-gradient-to-t from-seal/30 to-seal" style={{ height: `${20 + i * 28}px` }} />
-              <div className="flex justify-between w-full">
-                <span className="font-mono text-[10px] uppercase text-vellum-mute">{m.m}</span>
-                <span className="font-mono text-[10px] text-seal-deep">{m.v}</span>
-              </div>
+      {/* North-star metrics strip — what we're measuring, no $$$. */}
+      <div className="fade-up-5 mt-8 hairline-seal p-5 bg-ink/60">
+        <div className="grid grid-cols-12 gap-6 items-center">
+          <div className="col-span-12 lg:col-span-3">
+            <div className="font-mono text-[10px] tracking-[0.22em] uppercase text-seal-deep">
+              North-star metrics · end of month 6
             </div>
-          ))}
+            <h3 className="font-display mt-2 text-vellum text-[24px] leading-[1.1]">
+              How we'll know we're winning.
+            </h3>
+          </div>
+          <div className="col-span-12 lg:col-span-9 grid grid-cols-2 md:grid-cols-4 gap-4">
+            {northStars.map((m) => (
+              <div key={m.k} className="hairline p-3 bg-ink-2/40">
+                <div className="font-mono text-[10px] tracking-[0.22em] uppercase text-vellum-mute leading-[1.4]">
+                  {m.k}
+                </div>
+                <div className="mt-2 font-display text-seal-deep text-[26px] leading-none">{m.aim}</div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </Frame>
@@ -1612,6 +1655,6 @@ const SLIDES: Array<{ label: string; title: string; Component: () => React.React
   { label: "Collab",        title: "Three projects. One stack.",                                Component: Slide11 },
   { label: "Business",      title: "Two revenue streams. Hosted infra ready for billing.",      Component: Slide12 },
   { label: "Traction",      title: "Live · on-chain · being composed on.",                      Component: Slide13 },
-  { label: "Roadmap",       title: "From primitive to platform.",                               Component: Slide14 },
+  { label: "Roadmap",       title: "Next 6 months · from primitive to platform.",               Component: Slide14 },
   { label: "Closing",       title: "The memory primitive for the agentic internet.",            Component: Slide15 },
 ];
