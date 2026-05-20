@@ -2,6 +2,10 @@
 
 > Your AI's lifetime memory — encrypted, permanent, transferable.
 
+## ❶ Problem (one line)
+
+> **AI agents accumulate deeply personal knowledge about us — but today that memory is locked on someone else's server, with no ownership, no privacy proof, and no portability.** SealedMind fixes all three on 0G.
+
 SealedMind is the first portable memory layer for AI agents where:
 - **Privacy is hardware-enforced** — every read and write runs inside Intel TDX + NVIDIA H100 TEE via 0G Sealed Inference
 - **Persistence is decentralized** — memories are AES-256-GCM encrypted and stored permanently on 0G Storage
@@ -40,9 +44,10 @@ SealedMind is a maximum-leverage demo of the 0G stack — every layer is load-be
 |---|---|
 | **0G Storage** | Every encrypted memory blob (AES-256-GCM ciphertext) is uploaded to 0G Storage via `@0gfoundation/0g-ts-sdk`. RootHash + txHash returned per memory; auditable on chainscan. |
 | **0G Compute (Sealed Inference)** | Qwen 2.5 7B Instruct runs inside Intel TDX + NVIDIA H100 confidential GPU via the `@0glabs/0g-serving-broker`. Used for fact extraction (`remember`) and synthesis (`recall`). Returns a TEE attestation per call. |
-| **0G Chain (16602 / 16661)** | Four contracts — SealedMindNFT (ERC-7857), CapabilityRegistry (revocable shared access), MemoryAccessLog (immutable audit trail), Verifier — all source-verified on chainscan. |
+| **0G Chain (16602 / 16661)** | Three on-chain primitives we deployed and source-verified: `CapabilityRegistry` (revocable shared access), `MemoryAccessLog` (immutable audit trail), `Verifier` (TEE attestation validator). |
+| **Agentic ID (ERC-7857)** | Each user's Mind is an `SealedMindNFT` — ERC-7857 intelligent NFT, the 0G-native standard for AI agent identity. Holds storage CIDs + shard registry + authorized-user list. Transferable, composable, owned by the wallet. |
 
-No other chain offers all three layers natively. SealedMind would be impossible to build elsewhere without stitching together AWS, a vector DB, a separate TEE provider, and a custom permissioning system.
+No other chain offers all four natively. SealedMind would be impossible to build elsewhere without stitching together AWS, a vector DB, a separate TEE provider, and a custom permissioning system.
 
 ---
 
@@ -95,35 +100,47 @@ Full walkthrough on https://sealedmind.vercel.app/docs and in [`OVERVIEW.md`](./
 
 ---
 
-## 🌏 Community & Real Activity
+## 🔥 Early traction (real, public, on-chain)
 
-SealedMind isn't a private hackathon submission. It's a primitive other 0G builders are already composing on, with public engagement on X.
+SealedMind isn't a private hackathon submission — it's a primitive other 0G builders are already composing on, with public engagement on X and live integrations on chain.
+
+### 🤝 Real builders shipping on SealedMind
+
+- **[Daimon](../FAMILIAR_BUILD_GUIDE.md)** — *Train it. Own it. Pass it on.* Consumer dApp where every user spawns a tradeable AI trading agent. The agent's brain is a SealedMind ERC-7857 iNFT; trades route through VeilSolver. Marketplace contract live on Galileo + 0G mainnet at `0xb9D42824955b492BE4cBf13988C3d0Ad9985F807`. **First third-party project shipping on the SealedMind primitive.**
+- **[VeilSolver](https://veil-resolver-frontend.vercel.app)** — MEV-resistant intent solver on 0G. They replaced their bespoke encrypted-storage layer with `@sealedmind/sdk` calls; their strategy registry, audit trail, and compliance log all run on SealedMind now. Joint integration guide: [`/VEILSOLVER_INTEGRATION.md`](../VEILSOLVER_INTEGRATION.md).
+- **[Foundry Protocol](https://www.foundryprotocol.xyz/docs/0g-hackathon)** — co-owned AI model marketplace on 0G. Integration confirmed; `@sealedmind/mcp` shipping this week so any Foundry Ingot-powered agent gets TEE-attested, on-chain-audited memory. Joint plan: [`/FOUNDRY_INTEGRATION.md`](../FOUNDRY_INTEGRATION.md).
+
+> **Talked with 10+ teams in the 0G ecosystem. Three confirmed integrations.** Three categories of project (consumer / DeFi / model marketplace), one memory primitive underneath all of them.
+
+### ⬆ Upstream contribution to the 0G stack itself
+
+We didn't only build *on top of* 0G. We **extended 0G's own `0gfoundation/0g-memory` project** with a sanctioned drop-in addon. Any existing 0G Memory deployment can install `evermemos-sealedmind` from PyPI, set one env var, and inherit encrypted-under-wallet-key memory + on-chain audit. **A contributor to the 0G stack, not just a consumer of it.**
 
 ### 📣 Live X (Twitter) thread coverage
 
-- 🧵 [SealedMind launch thread on X](https://x.com/SealedMind_0G/status/2054824236494319702) — "SealedMind is live on 0G mainnet. Encrypted AI memory. Hardware-attested inference. Capability-based sharing."
+- 🧵 [SealedMind launch thread on X](https://x.com/SealedMind_0G/status/2054824236494319702) — *"SealedMind is live on 0G mainnet. Encrypted AI memory. Hardware-attested inference. Capability-based sharing."*
 - 🧵 [SealedMind product update thread](https://x.com/SealedMind_0G/status/2055196827583181076) — on-chain MemoryAccessLog wiring + chainscan-clickable verify proof
 - 🧵 [VeilSolver × SealedMind ecosystem thread](https://x.com/VeilSolver/status/2052236211167821961) — partner project amplifying the joint stack story
+- Follow [@SealedMind_0G](https://x.com/SealedMind_0G) for live updates.
 
-Follow [@SealedMind_0G](https://x.com/SealedMind_0G) for live updates.
+### 🏛 0G ecosystem presence — since day one
 
-### 🤝 Real builders integrating SealedMind
+- Attended **every** 0G builder showcase since the program launched
+- Attended **every** 0G builder meet — APAC track from day one
+- Coordinated with the 0G team across product + DevRel
+- Three-project ecosystem submission to the 0G APAC Hackathon (Daimon + VeilSolver + SealedMind)
 
-- **[Daimon](../FAMILIAR_BUILD_GUIDE.md)** — *Train it. Own it. Pass it on.* A consumer dApp where every user spawns a tradeable AI trading agent. The agent's brain is a SealedMind ERC-7857 iNFT; trades route through VeilSolver. Marketplace contract live on Galileo testnet AND 0G mainnet at `0xb9D42824955b492BE4cBf13988C3d0Ad9985F807`. **Daimon is the first third-party project shipping on the SealedMind primitive.**
-- **[VeilSolver](https://veil-resolver-frontend.vercel.app)** — MEV-resistant intent solver on 0G. Joint integration guide: [`/VEILSOLVER_INTEGRATION.md`](../VEILSOLVER_INTEGRATION.md). Their solver is the execution side of the SealedMind brain.
-
-### 📈 Distribution proof
+### 📦 Distribution proof
 
 - **[`@sealedmind/sdk` on npm](https://www.npmjs.com/package/@sealedmind/sdk)** — installable, MIT-licensed, full TypeScript typings
 - **[`sealedmind` on PyPI](https://pypi.org/project/sealedmind/)** — async Python SDK
-- **[`evermemos-sealedmind` on PyPI](https://pypi.org/project/evermemos-sealedmind/)** — drop-in addon for `0gfoundation/0g-memory`, our top-of-funnel for the 0G ecosystem
+- **[`evermemos-sealedmind` on PyPI](https://pypi.org/project/evermemos-sealedmind/)** — drop-in addon for `0gfoundation/0g-memory` (top-of-funnel into every 0G Memory project)
+- **`@sealedmind/mcp`** (shipping this week) — MCP server for the Foundry × SealedMind collab
 - All 8 contracts source-verified on chainscan (mainnet + testnet) — anyone can read the bytecode
 
 ### 🏛 Ecosystem context
 
-SealedMind ships as part of a coordinated three-project 0G submission:
-
-> **SealedMind** (memory primitive) + **VeilSolver** (execution primitive) + **Daimon** (consumer surface) = an end-to-end stack for ownable, private, autonomous AI agents — composed on 0G Storage, Compute, and Chain.
+> **SealedMind** (memory primitive) + **VeilSolver** (execution primitive) + **Daimon** (consumer surface) + **Foundry Protocol** (co-owned model marketplace) — four projects, one memory primitive underneath them all, all composed natively on 0G Storage / Compute / Chain.
 
 ---
 
