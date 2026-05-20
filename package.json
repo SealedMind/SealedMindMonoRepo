@@ -6,6 +6,7 @@
     "contracts",
     "backend",
     "sdk",
+    "sdk-mcp",
     "frontend",
     "cli"
   ],

@@ -56,7 +56,7 @@ No other chain offers all four natively. SealedMind would be impossible to build
 - **8 contracts deployed + source-verified** on 0G Mainnet (16661) AND Galileo Testnet (16602)
 - **Every `remember` / `recall` / `chat` emits an on-chain `MemoryAccessLog` tx** — immutable audit trail, chainscan-clickable from the Verify Proof button
 - **Hardware-attested LLM inference** — Qwen 2.5 7B in Intel TDX + NVIDIA H100, every reply returns a TEE attestation
-- **Three SDKs published** — `@sealedmind/sdk` (npm), `sealedmind` (PyPI), `evermemos-sealedmind` (PyPI, 0G Memory addon)
+- **Four SDKs published** — `@sealedmind/sdk` (npm), `@sealedmind/mcp` (npm MCP server), `sealedmind` (PyPI), `evermemos-sealedmind` (PyPI, 0G Memory addon)
 - **Live two-agent capability demo** at sealedmind.vercel.app/demo — wallet sign-in, on-chain grant, instant revoke
 - **No admin keys, no trusted setup** — contracts are immutable; encryption keys derive from your wallet, never persisted
 
@@ -78,6 +78,7 @@ No other chain offers all four natively. SealedMind would be impossible to build
 
 ```bash
 npm  install @sealedmind/sdk          # TypeScript / JavaScript SDK
+npx  -y @sealedmind/mcp               # MCP server for Claude Desktop / Cursor / Cline / Foundry
 pip  install sealedmind               # Python SDK (generic agent stacks)
 pip  install evermemos-sealedmind     # 0G Memory drop-in addon
 ```
@@ -85,6 +86,7 @@ pip  install evermemos-sealedmind     # 0G Memory drop-in addon
 | Package | Registry | Use case |
 |---|---|---|
 | [`@sealedmind/sdk`](https://www.npmjs.com/package/@sealedmind/sdk) | npm | Browser / Node — wraps the hosted backend |
+| [`@sealedmind/mcp`](https://www.npmjs.com/package/@sealedmind/mcp) | npm | **Model Context Protocol** server — drop into Claude Desktop, Cursor, Cline, Foundry, or any MCP host to give an agent encrypted, TEE-attested memory |
 | [`sealedmind`](https://pypi.org/project/sealedmind/) | PyPI | Python — wraps the hosted backend |
 | [`evermemos-sealedmind`](https://pypi.org/project/evermemos-sealedmind/) | PyPI | Plugs into [`0gfoundation/0g-memory`](https://github.com/0gfoundation/0g-memory) as the encrypted memory layer |
 
@@ -108,7 +110,7 @@ SealedMind isn't a private hackathon submission — it's a primitive other 0G bu
 
 - **[Daimon](../FAMILIAR_BUILD_GUIDE.md)** — *Train it. Own it. Pass it on.* Consumer dApp where every user spawns a tradeable AI trading agent. The agent's brain is a SealedMind ERC-7857 iNFT; trades route through VeilSolver. Marketplace contract live on Galileo + 0G mainnet at `0xb9D42824955b492BE4cBf13988C3d0Ad9985F807`. **First third-party project shipping on the SealedMind primitive.**
 - **[VeilSolver](https://veil-resolver-frontend.vercel.app)** — MEV-resistant intent solver on 0G. They replaced their bespoke encrypted-storage layer with `@sealedmind/sdk` calls; their strategy registry, audit trail, and compliance log all run on SealedMind now. Joint integration guide: [`/VEILSOLVER_INTEGRATION.md`](../VEILSOLVER_INTEGRATION.md).
-- **[Foundry Protocol](https://www.foundryprotocol.xyz/docs/0g-hackathon)** — co-owned AI model marketplace on 0G. Integration confirmed; `@sealedmind/mcp` shipping this week so any Foundry Ingot-powered agent gets TEE-attested, on-chain-audited memory. Joint plan: [`/FOUNDRY_INTEGRATION.md`](../FOUNDRY_INTEGRATION.md).
+- **[Foundry Protocol](https://www.foundryprotocol.xyz/docs/0g-hackathon)** — co-owned AI model marketplace on 0G. Integration is **live now**: [`@sealedmind/mcp`](https://www.npmjs.com/package/@sealedmind/mcp) on npm pairs with `@foundryprotocol/mcp` in any MCP-compatible runtime — any Foundry Ingot-powered agent gets TEE-attested, on-chain-audited memory with one config block. Source: [`sdk-mcp/`](./sdk-mcp).
 
 > **Talked with 10+ teams in the 0G ecosystem. Three confirmed integrations.** Three categories of project (consumer / DeFi / model marketplace), one memory primitive underneath all of them.
 
@@ -135,7 +137,7 @@ We didn't only build *on top of* 0G. We **extended 0G's own `0gfoundation/0g-mem
 - **[`@sealedmind/sdk` on npm](https://www.npmjs.com/package/@sealedmind/sdk)** — installable, MIT-licensed, full TypeScript typings
 - **[`sealedmind` on PyPI](https://pypi.org/project/sealedmind/)** — async Python SDK
 - **[`evermemos-sealedmind` on PyPI](https://pypi.org/project/evermemos-sealedmind/)** — drop-in addon for `0gfoundation/0g-memory` (top-of-funnel into every 0G Memory project)
-- **`@sealedmind/mcp`** (shipping this week) — MCP server for the Foundry × SealedMind collab
+- **[`@sealedmind/mcp` on npm](https://www.npmjs.com/package/@sealedmind/mcp)** — Model Context Protocol server, the MCP-runtime side of the Foundry × SealedMind collab
 - All 8 contracts source-verified on chainscan (mainnet + testnet) — anyone can read the bytecode
 
 ### 🏛 Ecosystem context
@@ -240,6 +242,7 @@ sealedmind/
 │           ├── embeddings.ts          all-MiniLM-L6-v2 (384d)
 │           └── crypto.ts              AES-256-GCM
 ├── sdk/                @sealedmind/sdk — TypeScript SDK (published on npm)
+├── sdk-mcp/            @sealedmind/mcp — Model Context Protocol server (published on npm)
 ├── python-sdk/         sealedmind — Python SDK (published on PyPI)
 ├── evermemos-sealedmind/  0G Memory drop-in addon (published on PyPI)
 │   ├── evermemos_sealedmind/

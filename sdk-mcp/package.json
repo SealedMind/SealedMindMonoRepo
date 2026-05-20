@@ -1,0 +1,57 @@
+{
+  "name": "@sealedmind/mcp",
+  "version": "0.1.0",
+  "description": "Model Context Protocol server for SealedMind — encrypted, TEE-attested AI memory on 0G. Drop into any MCP-compatible runtime (Claude Desktop, Cursor, Cline, Foundry, custom) to give your agent persistent memory.",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "sealedmind-mcp": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx src/index.ts",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20.12.0",
+    "tsx": "^4.7.0",
+    "typescript": "^5.4.0"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "sealedmind",
+    "0g",
+    "ai-memory",
+    "tee",
+    "encrypted-memory",
+    "agent-memory",
+    "claude",
+    "cursor",
+    "foundry",
+    "erc-7857"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/SealedMind/SealedMindMonoRepo",
+    "directory": "sdk-mcp"
+  },
+  "homepage": "https://sealedmind.vercel.app",
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
