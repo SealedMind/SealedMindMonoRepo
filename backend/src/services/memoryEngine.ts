@@ -63,6 +63,17 @@ export interface MemoryEngineConfig {
   storage: StorageConfig;
   dataDir?: string;        // directory for persisted index + records
   encryptionKey?: Buffer;  // if provided, used directly (never written to disk)
+  /**
+   * Mind encryption version this engine instance is operating under.
+   *   1 = legacy: encryptionKey is the userKey itself (current path)
+   *   2 = envelope: encryptionKey is the unwrapped Content Key from the
+   *       Mind's keyring; userKey only ever wraps/unwraps the CK and lives
+   *       outside this engine.
+   * Engine logic is version-agnostic; this is recorded for diagnostics
+   * and surfaced via the version getter / /v1/minds/:id/version endpoint.
+   * Defaults to 1 to preserve existing behaviour.
+   */
+  encVersion?: 1 | 2;
 }
 
 export class MemoryEngine {
@@ -73,6 +84,8 @@ export class MemoryEngine {
   private encryptionKey: Buffer;
   private nextId: number = 0;
   private dataDir: string;
+  /** 1 = legacy direct-key; 2 = envelope (CK from keyring). Diagnostic only. */
+  private _encVersion: 1 | 2;
 
   // Paths for persisted index + records (key is never written to disk)
   private get recordsPath() { return path.join(this.dataDir, "sealedmind-records.json"); }
@@ -86,9 +99,13 @@ export class MemoryEngine {
 
     // Use provided key (EngineRegistry path) or generate ephemeral key (test/standalone path)
     this.encryptionKey = cfg.encryptionKey ?? generateKey();
+    this._encVersion = cfg.encVersion ?? 1;
 
     this.index = new VectorIndex(EMBEDDING_DIM);
   }
+
+  /** Encryption version for this engine's Mind (1 legacy / 2 envelope). */
+  get encVersion(): 1 | 2 { return this._encVersion; }
 
   /** Initialize the inference broker and restore persisted state. */
   async init(): Promise<void> {

@@ -9,7 +9,7 @@
 SealedMind is the first portable memory layer for AI agents where:
 - **Privacy is hardware-enforced** — every read and write runs inside Intel TDX + NVIDIA H100 TEE via 0G Sealed Inference
 - **Persistence is decentralized** — memories are AES-256-GCM encrypted and stored permanently on 0G Storage
-- **Ownership is cryptographic** — each Mind is an ERC-7857 iNFT on 0G Chain, transferable and user-controlled
+- **Ownership is cryptographic AND truly transferable** — each Mind is an ERC-7857 iNFT on 0G Chain; sell or transfer a Mind and the new owner inherits read access via on-chain re-key (envelope encryption, v0.2 shipped)
 - **Isolation is guaranteed** — per-user encryption keys, per-user vector index, zero memory bleed between users
 
 Built for the 0G APAC Hackathon. Now shipping as a real product.
@@ -45,7 +45,7 @@ SealedMind is a maximum-leverage demo of the 0G stack — every layer is load-be
 | **0G Storage** | Every encrypted memory blob (AES-256-GCM ciphertext) is uploaded to 0G Storage via `@0gfoundation/0g-ts-sdk`. RootHash + txHash returned per memory; auditable on chainscan. |
 | **0G Compute (Sealed Inference)** | Qwen 2.5 7B Instruct runs inside Intel TDX + NVIDIA H100 confidential GPU via the `@0glabs/0g-serving-broker`. Used for fact extraction (`remember`) and synthesis (`recall`). Returns a TEE attestation per call. |
 | **0G Chain (16602 / 16661)** | Three on-chain primitives we deployed and source-verified: `CapabilityRegistry` (revocable shared access), `MemoryAccessLog` (immutable audit trail), `Verifier` (TEE attestation validator). |
-| **Agentic ID (ERC-7857)** | Each user's Mind is an `SealedMindNFT` — ERC-7857 intelligent NFT, the 0G-native standard for AI agent identity. Holds storage CIDs + shard registry + authorized-user list. Transferable, composable, owned by the wallet. |
+| **Agentic ID (ERC-7857)** | Each user's Mind is an `SealedMindNFT` — ERC-7857 intelligent NFT, the 0G-native standard for AI agent identity. Holds storage CIDs + shard registry + authorized-user list. Truly transferable: an on-chain transfer triggers backend envelope re-key so the new owner can read the memories immediately (v0.2). |
 
 No other chain offers all four natively. SealedMind would be impossible to build elsewhere without stitching together AWS, a vector DB, a separate TEE provider, and a custom permissioning system.
 
@@ -56,6 +56,7 @@ No other chain offers all four natively. SealedMind would be impossible to build
 - **8 contracts deployed + source-verified** on 0G Mainnet (16661) AND Galileo Testnet (16602)
 - **Every `remember` / `recall` / `chat` emits an on-chain `MemoryAccessLog` tx** — immutable audit trail, chainscan-clickable from the Verify Proof button
 - **Hardware-attested LLM inference** — Qwen 2.5 7B in Intel TDX + NVIDIA H100, every reply returns a TEE attestation
+- **v0.2 transferable Minds (shipped)** — envelope encryption (KEK-DEK): each Mind owns a Content Key wrapped under the owner's wallet-derived key. On transfer, the backend re-wraps the CK under the new owner's key — O(1), blobs untouched. `POST /v1/minds/:id/transfer` is live. The old wire format is frozen and pinned by a regression test, so existing Minds keep working byte-for-byte.
 - **Four SDKs published** — `@sealedmind/sdk` (npm), `@sealedmind/mcp` (npm MCP server), `sealedmind` (PyPI), `evermemos-sealedmind` (PyPI, 0G Memory addon)
 - **Live two-agent capability demo** at sealedmind.vercel.app/demo — wallet sign-in, on-chain grant, instant revoke
 - **No admin keys, no trusted setup** — contracts are immutable; encryption keys derive from your wallet, never persisted
@@ -162,7 +163,8 @@ We didn't only build *on top of* 0G. We **extended 0G's own `0gfoundation/0g-mem
 12. [API Reference](#api-reference)
 13. [Testing](#testing)
 14. [How It Works](#how-it-works)
-15. [Key Design Decisions](#key-design-decisions)
+15. [Transferable Minds (v0.2)](#transferable-minds-v02)
+16. [Key Design Decisions](#key-design-decisions)
 
 ---
 
@@ -655,12 +657,20 @@ GET  /v1/auth/apikey         Bearer <token> → { apiKey }   (idempotent)
 ### Minds
 
 ```
-POST /v1/minds               Create (or get) user's Mind
-GET  /v1/minds               List user's Minds
-GET  /v1/minds/:id           Get Mind details + records (owner only)
-GET  /v1/minds/:id/stats     Memory count by shard
-POST /v1/minds/:id/shards    Add a shard name
+POST /v1/minds                Create (or get) user's Mind
+GET  /v1/minds                List user's Minds
+GET  /v1/minds/:id            Get Mind details + records (owner only)
+GET  /v1/minds/:id/stats      Memory count by shard
+POST /v1/minds/:id/shards     Add a shard name
+GET  /v1/minds/:id/version    Encryption version (1 legacy / 2 transferable) — public
+POST /v1/minds/:id/transfer   Re-key to a new owner — owner-only
 ```
+
+`/transfer` body: `{ newOwner: "0x…", txHash?: "0x…" }` — re-wraps the Mind's
+Content Key under the new owner's wallet-derived key, atomically migrates
+the data directory, and flips the on-disk owner. The new owner can read on
+the next request. Blobs on 0G Storage are never touched. See
+[Transferable Minds (v0.2)](#transferable-minds-v02) below.
 
 ### Memory
 
@@ -753,6 +763,69 @@ npm test --workspaces
 
 ---
 
+## Transferable Minds (v0.2)
+
+> *"AI memory as a real transferable asset"* — shipped as v0.2 with envelope encryption.
+
+A Mind is an ERC-7857 iNFT. When the token moves on-chain from Alice to Bob,
+SealedMind re-keys the Mind's memory so Bob can read it — without re-uploading,
+re-encrypting, or touching any blob on 0G Storage.
+
+### How it works
+
+We use **envelope encryption** (KEK-DEK), the same pattern used by AWS KMS
+and GCP KMS:
+
+- Each v2 Mind owns a random 32-byte **Content Key (CK)**. The CK encrypts
+  the memory blobs.
+- The CK itself is **wrapped** (AES-256-GCM encrypted) under the owner's
+  **userKey** = `HMAC-SHA256(KEY_DERIVATION_SECRET, ownerAddress)`.
+- The wrapped CK lives in `data/<owner>/mind-keyring.json`.
+
+```
+        ownerKEK = HMAC(secret, ownerAddress)        ← deterministic, never on disk
+              │
+              │ wraps
+              ▼
+            wrappedCK ──── unwrap ────► CK ──── encrypts ────► memory blobs on 0G Storage
+```
+
+### Transfer is O(1)
+
+On `POST /v1/minds/:id/transfer { newOwner }`:
+
+1. Backend verifies the caller is the current owner (SIWE / API key).
+2. **Unwrap** CK with the current owner's userKEK.
+3. **Re-wrap** CK under the new owner's userKEK.
+4. Atomically rename the Mind's data directory from `<oldOwner>` → `<newOwner>`.
+5. Drop in-process engines. Next request loads the moved keyring under the new owner.
+
+**Blobs are never re-uploaded.** One 32-byte key is re-encrypted. The new owner's
+next `recall` works against the same on-chain CIDs.
+
+### Safety rails
+
+| Guarantee | How |
+|---|---|
+| **v1 wire format is frozen** | `test/crypto.v1regression.test.ts` pins a known-good v1 blob byte-for-byte. Any change to v1 decrypt fails the build. |
+| **No silent migrations** | Existing v1 Minds stay v1 forever; v2 only applies to new Minds. Transfer of a v1 Mind lazily upgrades just that one Mind. |
+| **Rollback in one env var** | Set `MIND_ENC_VERSION=1` on the backend to disable v2 minting; existing v2 Minds keep working. |
+| **Diagnostic version endpoint** | `GET /v1/minds/:id/version` → `{ encVersion: 1 \| 2 }`, no auth — partners can check before listing. |
+| **Per-Mind boot log** | `[engine] Mind 0xabc…  v=2 (keyring loaded)` on every Mind load, surfaces in Railway logs. |
+
+### Honest threat-model note
+
+This is server-side re-wrap: during the moment of transfer, the backend briefly
+handles the unwrapped CK — the *same* trust surface that already exists today
+(the server holds `KEY_DERIVATION_SECRET` and routes plaintext through the TEE
+on every `remember` / `recall`). **No new trust assumption is introduced.**
+
+The fully-trustless variant (client signs, proxy/threshold re-encryption so the
+server never sees CK) is **v0.3**, and its natural home is the ERC-7857 contract's
+`verifyTransferValidity` TEE-oracle path. We won't overclaim.
+
+---
+
 ## Key Design Decisions
 
 | Decision | Rationale |
@@ -760,6 +833,7 @@ npm test --workspaces
 | Mind ID = wallet address | Stable, predictable, no random IDs to track |
 | Per-user EngineRegistry | Complete memory isolation — no cross-user data bleed |
 | Key = HMAC(secret, address) | Never on disk, deterministic across restarts |
+| Envelope encryption (v0.2) | O(1) transfers — re-wrap a 32-byte key, not N blob re-uploads |
 | HNSW in-process | No external vector DB dependency, serialized to disk per-user |
 | 0G Storage for blobs | Permanent, censorship-resistant, verifiable on-chain |
 | TEE for inference only | We don't run the embedding model in TEE (0G doesn't offer that yet) |

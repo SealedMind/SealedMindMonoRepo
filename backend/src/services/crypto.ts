@@ -52,3 +52,45 @@ export function decrypt(blob: EncryptedBlob | Uint8Array, key: Buffer): Buffer {
 export function decryptToString(blob: EncryptedBlob | Uint8Array, key: Buffer): string {
   return decrypt(blob, key).toString("utf8");
 }
+
+// ─────────────────────────────────────────────────────────────────────────
+// v2 — Envelope-encryption helpers (KEK-DEK / key wrapping).
+//
+// Used by the v0.2 transferable-Minds path:
+//   - Each Mind gets a random 32-byte Content Key (the DEK, called "CK").
+//   - CK is the key actually used to encrypt the memory blobs.
+//   - CK is "wrapped" (encrypted) under the owner's userKey (the KEK,
+//     `HMAC(KEY_DERIVATION_SECRET, ownerAddress)`).
+//   - On transfer Alice → Bob, the server unwraps CK with Alice's KEK and
+//     re-wraps it with Bob's KEK. Blobs are never touched.
+//
+// Wire format is intentionally identical to encrypt()/decrypt() above
+// ([12B IV][16B tag][ct]) so wrapped-key blobs share the same parser.
+// These helpers are ADDITIVE — encrypt/decrypt/decryptToString above remain
+// frozen and pinned by test/crypto.v1regression.test.ts.
+// ─────────────────────────────────────────────────────────────────────────
+
+/**
+ * Wrap (encrypt) a 32-byte content key under a KEK.
+ * Returns a base64 string suitable for persisting in mind-keyring.json.
+ */
+export function wrapKey(contentKey: Buffer, kek: Buffer): string {
+  if (contentKey.length !== KEY_BYTES) {
+    throw new Error(`Content key must be ${KEY_BYTES} bytes, got ${contentKey.length}`);
+  }
+  const { bytes } = encrypt(contentKey, kek);
+  return Buffer.from(bytes).toString("base64");
+}
+
+/**
+ * Unwrap a wrapped content key with the same KEK that wrapped it.
+ * Returns the original 32-byte content key.
+ */
+export function unwrapKey(wrappedCKBase64: string, kek: Buffer): Buffer {
+  const wrapped = Buffer.from(wrappedCKBase64, "base64");
+  const ck = decrypt(wrapped, kek);
+  if (ck.length !== KEY_BYTES) {
+    throw new Error(`Unwrapped key has wrong length: ${ck.length}`);
+  }
+  return ck;
+}

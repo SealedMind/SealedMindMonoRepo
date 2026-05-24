@@ -135,5 +135,98 @@ export function createMindsRouter(registry: EngineRegistry) {
     res.json({ totalMemories: engine.memoryCount, shardMemories: shardCounts });
   });
 
+  /**
+   * GET /minds/:id/version — diagnostic.
+   *
+   * Returns the encryption version a Mind resolves to (1 = legacy direct-key,
+   * 2 = envelope/transferable). Public — no PII surfaced, just the metadata
+   * shape. Useful for partners (Daimon, Foundry) to confirm a Mind is
+   * transferable before listing it for sale.
+   */
+  router.get("/:id/version", async (req: Request, res: Response) => {
+    const mindId = String(req.params.id).toLowerCase();
+    res.json({ mindId, encVersion: registry.versionOf(mindId) });
+  });
+
+  /**
+   * POST /minds/:id/transfer — re-key a Mind to a new owner.
+   *
+   * Body: { newOwner: "0x...", txHash?: "0x..." (optional, on-chain proof) }
+   *
+   * Auth: the request must be authenticated as the CURRENT owner (the one
+   * recorded in minds.json). We do NOT independently verify on-chain
+   * `ownerOf(tokenId)` here because (a) the user already signed an off-chain
+   * SIWE/API-key for this backend, and (b) the partner team's frontend is
+   * expected to call ERC-7857 `transfer()` first, then call this endpoint
+   * with the resulting txHash. The txHash is recorded for audit but not
+   * trust — the security guarantee is the SIWE-bound API key.
+   *
+   * On success:
+   *   - The Mind's data dir is renamed from <currentOwner> to <newOwner>.
+   *   - The keyring's CK is re-wrapped under the new owner's userKey.
+   *   - minds.json's owner/id is flipped.
+   *   - Both engines are dropped from the registry cache.
+   *   - The new owner can read the memories immediately on next request.
+   *
+   * v1 Minds are lazily upgraded to v2 during transfer (see
+   * EngineRegistry.rekeyForTransfer for the exact semantics).
+   */
+  router.post("/:id/transfer", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const mindId = String(req.params.id).toLowerCase();
+      const caller = req.walletAddress!.toLowerCase();
+
+      if (caller !== mindId) {
+        res.status(403).json({ error: "Only the current owner can transfer this Mind" });
+        return;
+      }
+
+      const newOwnerRaw: unknown = req.body?.newOwner;
+      if (typeof newOwnerRaw !== "string" || !/^0x[0-9a-fA-F]{40}$/.test(newOwnerRaw)) {
+        res.status(400).json({ error: "newOwner must be a 0x-prefixed EVM address" });
+        return;
+      }
+      const newOwner = newOwnerRaw.toLowerCase();
+      if (newOwner === mindId) {
+        res.status(400).json({ error: "newOwner equals current owner" });
+        return;
+      }
+      if (minds.has(newOwner)) {
+        res.status(409).json({ error: "Destination address already owns a Mind" });
+        return;
+      }
+
+      const txHash: string | undefined =
+        typeof req.body?.txHash === "string" ? req.body.txHash : undefined;
+
+      // Re-key + migrate the data directory.
+      const result = await registry.rekeyForTransfer(mindId, newOwner);
+
+      // Flip the in-memory mind registry — Mind ID becomes the new owner's address.
+      const meta = minds.get(mindId);
+      if (meta) {
+        const next: MindMeta = {
+          ...meta,
+          id: newOwner,
+          owner: newOwner,
+        };
+        minds.delete(mindId);
+        minds.set(newOwner, next);
+        saveMinds();
+      }
+
+      res.json({
+        success: true,
+        previousOwner: mindId,
+        newOwner,
+        encVersion: result.encVersion,
+        dataDirMoved: { from: result.fromDir, to: result.toDir },
+        onChainTxHash: txHash ?? null,
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: err?.message ?? String(err) });
+    }
+  });
+
   return router;
 }
